@@ -1,5 +1,3 @@
-core/
 *.db
-main.py
 .venv/
 __pycache__/
