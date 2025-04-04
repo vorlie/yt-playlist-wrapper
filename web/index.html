@@ -17,8 +17,43 @@
     <link rel="stylesheet" href="/static/style.css" />
   </head>
   <body>
-    <div class="app-container">
+    <section id="login-section" class="login-container">
+      <h2>Login</h2>
+      <div class="form-group">
+        <label for="login-username">Username:</label>
+        <input type="text" id="login-username" required />
+      </div>
+      <div class="form-group">
+        <label for="login-password">Password:</label>
+        <input type="password" id="login-password" required />
+      </div>
+      <button id="login-btn" class="btn btn-filled">Login</button>
+      <p id="login-error" class="error-message"></p>
+      <hr class="divider" />
+      <h2>Register</h2>
+      <div class="form-group">
+        <label for="register-username">Choose Username:</label>
+        <input type="text" id="register-username" required />
+      </div>
+      <div class="form-group">
+        <label for="register-password">Choose Password:</label>
+        <input type="password" id="register-password" required />
+      </div>
+      <div class="form-group">
+        <label for="register-confirm-password">Confirm Password:</label>
+        <input type="password" id="register-confirm-password" required />
+      </div>
+      <button id="register-btn" class="btn btn-outline">Register</button>
+      <p id="register-message" class="message"></p>
+    </section>
+
+    <div id="app-container" class="app-container" style="display: none">
       <aside class="left-pane">
+        <div class="user-section">
+          Logged in as: <strong id="user-info-username"></strong>
+          <button id="logout-btn" class="btn btn-text">Logout</button>
+        </div>
+        <hr class="divider" />
         <h2>Playlists</h2>
         <div class="playlist-add-form">
           <input

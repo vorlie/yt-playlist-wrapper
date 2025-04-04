@@ -19,6 +19,23 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM fully loaded and parsed");
 
   // --- Get DOM Element References ---
+  const loginSection = document.getElementById("login-section");
+  const loginUsernameInput = document.getElementById("login-username");
+  const loginPasswordInput = document.getElementById("login-password");
+  const loginBtn = document.getElementById("login-btn");
+  const loginError = document.getElementById("login-error");
+  const appContainer = document.getElementById("app-container"); // Main app container
+  const userInfoUsername = document.getElementById("user-info-username");
+  const logoutBtn = document.getElementById("logout-btn");
+
+  const registerUsernameInput = document.getElementById("register-username");
+  const registerPasswordInput = document.getElementById("register-password");
+  const registerConfirmPasswordInput = document.getElementById(
+    "register-confirm-password"
+  );
+  const registerBtn = document.getElementById("register-btn");
+  const registerMessage = document.getElementById("register-message");
+
   const playlistUrlInput = document.getElementById("playlist-url-input");
   const addPlaylistBtn = document.getElementById("add-playlist-btn");
   const playlistList = document.getElementById("playlist-list");
@@ -51,6 +68,41 @@ document.addEventListener("DOMContentLoaded", () => {
   let statusTimeoutId = null;
   let currentVideoListItem = null;
   let playbackMode = "none"; // Possible values: 'none', 'loop-one', 'loop-all'
+  let currentUserToken = null;
+
+  // --- Token Handling Functions ---
+  function storeToken(token) {
+    currentUserToken = token;
+    try {
+      localStorage.setItem("userAccessToken", token); // Use localStorage
+      console.log("Token stored.");
+    } catch (e) {
+      console.error("Failed to store token in localStorage:", e);
+      updateStatus("Could not save login session.", true);
+    }
+  }
+
+  function getToken() {
+    if (!currentUserToken) {
+      try {
+        currentUserToken = localStorage.getItem("userAccessToken");
+      } catch (e) {
+        console.error("Failed to retrieve token from localStorage:", e);
+        return null;
+      }
+    }
+    return currentUserToken;
+  }
+
+  function clearToken() {
+    currentUserToken = null;
+    try {
+      localStorage.removeItem("userAccessToken");
+      console.log("Token cleared.");
+    } catch (e) {
+      console.error("Failed to remove token from localStorage:", e);
+    }
+  }
 
   // --- Helper Functions ---
 
@@ -76,34 +128,132 @@ document.addEventListener("DOMContentLoaded", () => {
     }, duration);
   }
 
-  // Generic API Fetch function
-  async function fetchAPI(url, options = {}) {
+  // --- MODIFIED: Generic API Fetch function to handle Auth ---
+  async function fetchAPI(url, options = {}, isAuthenticated = false) {
     updateStatus("Communicating with backend...");
+    const headers = { ...(options.headers || {}) }; // Start with existing headers
+
+    if (isAuthenticated) {
+      const token = getToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      } else {
+        // If auth is required but no token, fail early or redirect?
+        console.warn(
+          "fetchAPI called with isAuthenticated=true, but no token found."
+        );
+        updateStatus("Authentication required. Please login.", true);
+        handleLogout(); // Treat as logged out
+        throw new Error("Authentication token not found.");
+      }
+    }
+
     try {
-      const response = await fetch(url, options);
+      const response = await fetch(url, { ...options, headers }); // Include headers
+
+      // Handle 401 Unauthorized specifically
+      if (response.status === 401) {
+        console.error(
+          "API Error: 401 Unauthorized. Token might be invalid or expired."
+        );
+        updateStatus("Session expired or invalid. Please login again.", true);
+        handleLogout(); // Clear token and log out UI
+        throw new Error("Unauthorized (401)");
+      }
+
       if (!response.ok) {
-        // Try to get error detail from FastAPI response
         let errorDetail = `HTTP error! status: ${response.status}`;
         try {
           const errorJson = await response.json();
           errorDetail = errorJson.detail || errorDetail;
-        } catch (e) {
-          // Ignore if response is not JSON
-        }
+        } catch (e) {}
         throw new Error(errorDetail);
       }
-      updateStatus("Done.", false, 1000); // Short confirmation
-      // Handle 204 No Content specifically
+
+      updateStatus("Done.", false, 1000);
       if (response.status === 204) {
-        return null; // Indicate success with no body
+        return null;
       }
-      return await response.json(); // Assume JSON response otherwise
+      // Handle potential non-JSON responses (like stream URL)
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        return await response.json();
+      } else {
+        return await response.text(); // Assume text for non-JSON (like stream URL)
+      }
     } catch (error) {
-      console.error("API Fetch Error:", error);
-      updateStatus(`Error: ${error.message}`, true, 5000);
-      throw error; // Re-throw to allow specific handling if needed
+      // Avoid showing status again if it was a 401 handled above
+      if (error.message !== "Unauthorized (401)") {
+        console.error("API Fetch Error:", error);
+        updateStatus(`Error: ${error.message}`, true, 5000);
+      }
+      throw error; // Re-throw
     }
   }
+
+  async function fetchAndDisplayCurrentUser() {
+    console.log("Attempting to fetch current user info...");
+    updateStatus("Loading user data...");
+    try {
+        // Call the new '/api/users/me' endpoint, requiring authentication
+        const userData = await fetchAPI('/api/users/me', {}, true); // true = requires auth
+
+        if (userData && userData.username) {
+            console.log("User data received:", userData);
+            // Update UI for logged-in state
+            loginSection.style.display = 'none';
+            appContainer.style.display = 'flex'; // Show main app
+            userInfoUsername.textContent = userData.username; // Display username
+            statusMessage.style.display = 'flex'; // Ensure status bar visible
+            updateStatus(`Logged in as ${userData.username}`, false);
+            loadInitialPlaylists(); // Load playlists now we know user is valid
+        } else {
+            // This case shouldn't be hit if API returns User model, but good practice
+            console.error("Received invalid user data from /api/users/me");
+            throw new Error("Invalid user data received.");
+        }
+    } catch (error) {
+        // Error likely means token was invalid (401 caught by fetchAPI) or network issue
+        console.error("Failed to fetch current user:", error);
+        // fetchAPI should have already called handleLogout on 401
+        // If it was another error, ensure logged out state
+        if (getToken()) { // Check if token still exists somehow
+             handleLogout(); // Ensure logout if fetch failed
+        } else {
+             // Ensure login screen is shown if already logged out
+             loginSection.style.display = 'block';
+             appContainer.style.display = 'none';
+             statusMessage.textContent = "Please Login";
+             statusMessage.style.display = 'flex';
+        }
+    }
+}
+
+function updateUIAfterLoginStateChange() {
+  const token = getToken();
+  if (token) {
+      // Token exists, try to fetch user data to verify it and update UI
+      fetchAndDisplayCurrentUser();
+  } else {
+      // No Token - Show Login Screen
+      loginSection.style.display = 'block'; // Or 'flex' based on its CSS
+      appContainer.style.display = 'none'; // Hide main app
+      statusMessage.textContent = "Please Login";
+      statusMessage.style.display = 'flex'; // Show login message
+      // Clear any potentially sensitive data shown in the app UI
+      playlistList.innerHTML = '<li class="list-item-placeholder">Login to view playlists...</li>';
+      videoList.innerHTML = '';
+      nowPlayingTitle.textContent = 'Nothing';
+      // Reset other states if needed
+      currentSelectedPlaylistId = null;
+      currentSelectedVideoUrl = null;
+      currentVideoTitle = null;
+      currentVideoListItem = null;
+      if(audioElement) audioElement.src = "";
+      updatePlaylistActionButtons();
+      updatePlaybackButtons(false);
+  }
+}
 
   function updateLoopButton() {
     if (!loopBtn) return; // Exit if button doesn't exist
@@ -312,12 +462,17 @@ document.addEventListener("DOMContentLoaded", () => {
   // Function to load initial playlists
   async function loadInitialPlaylists() {
     updateStatus("Loading playlists...");
+    playlistList.innerHTML =
+      '<li class="list-item-placeholder">Loading playlists...</li>';
     try {
-      const playlists = await fetchAPI("/api/playlists");
+      // Pass isAuthenticated = true
+      const playlists = await fetchAPI("/api/playlists", {}, true);
       renderPlaylistList(playlists);
       updateStatus("Playlists loaded.", false, 2000);
     } catch (error) {
-      // Error already shown by fetchAPI
+      // Error handled by fetchAPI (e.g., 401 Unauthorized) or general network error
+      playlistList.innerHTML =
+        '<li class="list-item-placeholder">Could not load playlists.</li>';
     }
   }
 
@@ -325,31 +480,28 @@ document.addEventListener("DOMContentLoaded", () => {
   async function handleAddPlaylist() {
     const url = playlistUrlInput.value.trim();
     if (!url || !url.includes("list=")) {
-      updateStatus("Please enter a valid YouTube playlist URL.", true);
-      return;
+      /* ... */ return;
     }
-
     addPlaylistBtn.disabled = true;
     updateStatus(`Adding playlist: ${url}...`);
-
     try {
-      const newPlaylist = await fetchAPI("/api/playlists", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const newPlaylist = await fetchAPI(
+        "/api/playlists",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: url }),
         },
-        body: JSON.stringify({ url: url }),
-      });
-      // If successful, reload the whole list to include the new one
-      await loadInitialPlaylists();
-      playlistUrlInput.value = ""; // Clear input
+        true
+      ); // <-- Pass true for authentication
+      await loadInitialPlaylists(); // Reload list
+      playlistUrlInput.value = "";
       updateStatus(
         `Playlist '${newPlaylist.title}' added successfully!`,
         false
       );
     } catch (error) {
-      // Error message handled by fetchAPI, just log maybe
-      console.error("Error adding playlist:", error);
+      /* ... */
     } finally {
       addPlaylistBtn.disabled = false;
     }
@@ -358,36 +510,30 @@ document.addEventListener("DOMContentLoaded", () => {
   // Function to handle removing a playlist
   async function handleRemovePlaylist() {
     if (!currentSelectedPlaylistId) {
-      updateStatus("No playlist selected to remove.", true);
+      /* ... */ return;
+    }
+    if (!(confirm(/* ... */))) {
       return;
     }
-
-    if (
-      !confirm(
-        `Are you sure you want to remove playlist ID ${currentSelectedPlaylistId}?`
-      )
-    ) {
-      return;
-    }
-
     removePlaylistBtn.disabled = true;
     refreshPlaylistBtn.disabled = true;
     updateStatus(`Removing playlist ID ${currentSelectedPlaylistId}...`);
-
     try {
-      await fetchAPI(`/api/playlists/${currentSelectedPlaylistId}`, {
-        method: "DELETE",
-      });
-      // Success (204 No Content returns null from fetchAPI)
+      await fetchAPI(
+        `/api/playlists/${currentSelectedPlaylistId}`,
+        {
+          method: "DELETE",
+        },
+        true
+      ); // <-- Pass true for authentication
       updateStatus(`Playlist removed successfully.`, false);
-      currentSelectedPlaylistId = null; // Reset selection
+      currentSelectedPlaylistId = null;
       videoList.innerHTML =
-        '<li class="list-item-placeholder">Select a playlist to view videos.</li>'; // Clear video list
-      await loadInitialPlaylists(); // Reload playlist list
+        '<li class="list-item-placeholder">Select a playlist...</li>';
+      await loadInitialPlaylists();
     } catch (error) {
-      console.error("Error removing playlist:", error);
+      /* ... */
     } finally {
-      // Re-enable based on whether an item is selected after reload (handled by selection logic)
       updatePlaylistActionButtons();
     }
   }
@@ -397,18 +543,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!playlistId) return;
     updateStatus(`Workspaceing videos for playlist ID ${playlistId}...`);
     videoList.innerHTML =
-      '<li class="list-item-placeholder">Loading videos...</li>'; // Show loading state
-    refreshPlaylistBtn.disabled = true; // Disable refresh during fetch
-
+      '<li class="list-item-placeholder">Loading videos...</li>';
+    refreshPlaylistBtn.disabled = true;
     try {
-      const videos = await fetchAPI(`/api/playlists/${playlistId}/videos`);
+      // Currently public, but could change to require auth by adding 'true'
+      const videos = await fetchAPI(
+        `/api/playlists/${playlistId}/videos`,
+        {},
+        false
+      ); // <-- Set to true if endpoint secured
       renderVideoList(videos);
       updateStatus(`Videos loaded.`, false, 2000);
     } catch (error) {
-      videoList.innerHTML =
-        '<li class="list-item-placeholder">Error loading videos.</li>';
+      /* ... */
     } finally {
-      refreshPlaylistBtn.disabled = currentSelectedPlaylistId !== null; // Re-enable if still selected
+      refreshPlaylistBtn.disabled = currentSelectedPlaylistId !== null;
     }
   }
 
@@ -440,19 +589,17 @@ document.addEventListener("DOMContentLoaded", () => {
     updatePrevNextButtons();
 
     try {
+      // Currently public, could change to require auth
       const streamUrl = await fetchAPI(
-        `/api/stream_url?video_url=${encodeURIComponent(videoWebpageUrl)}`
+        `/api/stream_url?video_url=${encodeURIComponent(videoWebpageUrl)}`,
+        {},
+        false // <-- Set to true if endpoint secured
       );
       if (streamUrl && typeof streamUrl === "string") {
-        // Don't update title here, wait for 'play' event
         audioElement.src = streamUrl;
         updateStatus("Loading audio...", false);
         audioElement.play().catch((e) => {
-          console.error("Error starting playback automatically:", e);
-          updateStatus("Ready to play. Press play.", false);
-          updatePlaybackButtons(false);
-          currentVideoTitle = null; // Clear title if play fails immediately
-          nowPlayingTitle.textContent = "Nothing";
+          /*...*/
         });
       } else {
         throw new Error("Invalid stream URL received.");
@@ -545,6 +692,126 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     }
+  }
+
+  async function handleRegistration(event) {
+    event.preventDefault();
+    const username = registerUsernameInput.value.trim();
+    const password = registerPasswordInput.value.trim();
+    const confirmPassword = registerConfirmPasswordInput.value.trim();
+    registerMessage.textContent = ""; // Clear previous messages
+    registerMessage.classList.remove("error-message"); // Reset style if needed
+
+    // Client-side validation
+    if (!username || !password || !confirmPassword) {
+      registerMessage.textContent = "Please fill in all registration fields.";
+      registerMessage.classList.add("error-message");
+      return;
+    }
+    if (password !== confirmPassword) {
+      registerMessage.textContent = "Passwords do not match.";
+      registerMessage.classList.add("error-message");
+      return;
+    }
+    // Add other basic checks? e.g., password length
+    if (password.length < 6) {
+      // Example minimum length
+      registerMessage.textContent = "Password must be at least 6 characters.";
+      registerMessage.classList.add("error-message");
+      return;
+    }
+
+    updateStatus("Registering...");
+    registerBtn.disabled = true;
+
+    try {
+      const userData = { username: username, password: password };
+      // Use fetchAPI - Registration doesn't require authentication header
+      const registeredUser = await fetchAPI(
+        "/users/",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(userData),
+        },
+        false
+      ); // false -> no auth needed
+
+      updateStatus("Registration successful!", false);
+      registerMessage.textContent = `User '${registeredUser.username}' created! You can now log in.`;
+      registerMessage.classList.remove("error-message"); // Ensure it's not styled as error
+      // Clear registration form
+      registerUsernameInput.value = "";
+      registerPasswordInput.value = "";
+      registerConfirmPasswordInput.value = "";
+    } catch (error) {
+      console.error("Registration Error:", error);
+      // Display error message from backend (already handled in fetchAPI status update)
+      registerMessage.textContent = error.message; // Display specific error here too
+      registerMessage.classList.add("error-message");
+      updateStatus("Registration failed.", true); // General status update
+    } finally {
+      registerBtn.disabled = false;
+    }
+  }
+
+  // --- NEW: Login/Logout Logic ---
+  async function handleLogin(event) {
+    event.preventDefault(); // Prevent default form submission
+    const username = loginUsernameInput.value.trim();
+    const password = loginPasswordInput.value.trim();
+    loginError.textContent = ""; // Clear previous errors
+
+    if (!username || !password) {
+      loginError.textContent = "Please enter both username and password.";
+      return;
+    }
+
+    updateStatus("Logging in...");
+    loginBtn.disabled = true;
+
+    try {
+      // Prepare form data for OAuth2PasswordRequestForm
+      const formData = new FormData();
+      formData.append("username", username);
+      formData.append("password", password);
+
+      // Make fetch request - NOTE headers for form data!
+      const response = await fetch("/token", {
+        // No need for fetchAPI helper here as it expects JSON by default
+        method: "POST",
+        body: formData, // Send as form data
+      });
+
+      if (!response.ok) {
+        let errorDetail = `Login failed (status: ${response.status})`;
+        try {
+          // Try getting FastAPI error detail
+          const errorJson = await response.json();
+          errorDetail = errorJson.detail || errorDetail;
+        } catch (e) {
+          /* ignore if not json */
+        }
+        throw new Error(errorDetail);
+      }
+
+      const tokenData = await response.json(); // Expect {"access_token": "...", "token_type": "bearer"}
+      storeToken(tokenData.access_token);
+      //updateStatus("Login successful!", false);
+      updateUIAfterLoginStateChange(); // Update UI to show app
+    } catch (error) {
+      console.error("Login Error:", error);
+      loginError.textContent = error.message; // Show error on login form
+      updateStatus("Login failed.", true);
+    } finally {
+      loginBtn.disabled = false;
+    }
+  }
+
+  function handleLogout() {
+    clearToken();
+    updateStatus("Logged out.", false);
+    updateUIAfterLoginStateChange(); // Update UI to show login screen
   }
 
   // Function to update playlist action buttons enable/disable state
@@ -911,8 +1178,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 50);
   });
 
+  registerBtn.addEventListener("click", handleRegistration);
+  // Optional: Allow submit on enter in confirm password field
+  registerConfirmPasswordInput.addEventListener("keypress", (event) => {
+    if (event.key === "Enter") {
+      handleRegistration(event);
+    }
+  });
+
+  loginBtn.addEventListener("click", handleLogin);
+  // Optional: Allow login on Enter key in password field
+  loginPasswordInput.addEventListener("keypress", (event) => {
+    if (event.key === "Enter") {
+      handleLogin(event);
+    }
+  });
+  logoutBtn.addEventListener("click", handleLogout);
+
   // --- Initial Load ---
-  loadInitialPlaylists();
+  updateUIAfterLoginStateChange();
+  //loadInitialPlaylists();
   updatePlaylistActionButtons();
   updatePlaybackButtons(false);
   seekBar.disabled = true; // Ensure seek bar starts disabled

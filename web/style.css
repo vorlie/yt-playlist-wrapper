@@ -381,14 +381,16 @@ h2 {
 .playback-mode-controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem; /* Adjust spacing between these buttons */
+  gap: 0.5rem;
+  /* Adjust spacing between these buttons */
 }
 
 /* Ensure controls-right arranges its children (buttons group, volume, mode controls) */
 .controls-right {
   display: flex;
   align-items: center;
-  gap: 1rem; /* Space between button groups / volume */
+  gap: 1rem;
+  /* Space between button groups / volume */
 }
 
 
@@ -479,7 +481,7 @@ h2 {
 /* Status Bar */
 .status-bar {
   padding: 0.5rem 1rem;
-  margin: 0.5rem 0 00 0; 
+  margin: 0.5rem 0 00 0;
   background-color: var(--md-sys-color-surface-variant);
   color: var(--md-sys-color-on-surface);
   font-size: 0.85rem;
@@ -625,6 +627,98 @@ h2 {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+.login-container {
+  max-width: 400px;
+  margin: 5rem auto;
+  padding: 2rem;
+  background-color: var(--md-sys-color-surface);
+  border-radius: var(--md-shape-corner-large);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--md-sys-color-outline);
+}
+
+.login-container h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"] {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-corner-small);
+  background-color: var(--md-sys-color-background);
+  /* Match body */
+  color: var(--md-sys-color-on-background);
+  font-size: 1rem;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="password"]:focus {
+  outline: 2px solid var(--md-sys-color-primary);
+  border-color: transparent;
+}
+
+
+#login-btn {
+  width: 100%;
+  padding: 0.8rem;
+  margin-top: 1rem;
+}
+
+.error-message {
+  color: var(--md-sys-color-error);
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  min-height: 1.2em;
+  /* Prevent layout shift */
+  text-align: center;
+}
+
+/* User section in left pane */
+.user-section {
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+#user-info-username {
+  font-weight: bold;
+  margin-right: 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#logout-btn {
+  padding: 0.3rem 0.6rem;
+  /* Smaller text button */
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--md-sys-color-outline);
+  margin: 0 0 1rem 0;
+}
+
 /* --- Dark Mode Overrides --- */
 @media (prefers-color-scheme: dark) {
   :root {
@@ -661,9 +755,11 @@ h2 {
 
 
     /* Core Dark Theme Surface/Background Colors */
-    --md-sys-color-background: #1C1B1F; /* Updated standard dark background */
+    --md-sys-color-background: #1C1B1F;
+    /* Updated standard dark background */
     --md-sys-color-on-background: #E6E1E5;
-    --md-sys-color-surface: #1C1B1F;  /* Surface same as background */
+    --md-sys-color-surface: #1C1B1F;
+    /* Surface same as background */
     --md-sys-color-on-surface: #E6E1E5;
     --md-sys-color-surface-variant: #3e3c46;
     --md-sys-color-on-surface-variant: #CAC4D0;
@@ -680,4 +776,16 @@ h2 {
     --md-sys-color-shadow: #000000;
   }
 
+  .login-container {
+    background-color: var(--md-sys-color-surface-variant);
+    /* Darker surface for login box */
+    border-color: var(--md-sys-color-outline);
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="password"] {
+    background-color: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface);
+    border-color: var(--md-sys-color-outline);
+  }
 }
