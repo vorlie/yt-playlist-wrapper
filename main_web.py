@@ -109,8 +109,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     print(f"Login attempt for username: {form_data.username}")
     user = await database.get_user_by_username(form_data.username)
     if not user or not auth.verify_password(form_data.password, user["hashed_password"]):
-        #print("Login failed: Incorrect username or password")
-        print(f"Username: {form_data.username}, Password: {form_data.password}")
+        print("Login failed: Incorrect username or password")
+        #print(f"Username: {form_data.username}, Password: {form_data.password}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
