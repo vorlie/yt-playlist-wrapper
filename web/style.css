@@ -1,0 +1,683 @@
+/* web/style.css */
+
+:root {
+  /* Material You-ish Palette (Light Theme) */
+  --md-sys-color-primary: #6750A4;
+  --md-sys-color-primary-hover: #4c3b79;
+  --md-sys-color-on-primary: #FFFFFF;
+  --md-sys-color-primary-container: #EADDFF;
+  --md-sys-color-on-primary-container: #21005D;
+  --md-sys-color-secondary: #625B71;
+  --md-sys-color-on-secondary: #FFFFFF;
+  --md-sys-color-secondary-container: #E8DEF8;
+  --md-sys-color-on-secondary-container: #1D192B;
+  --md-sys-color-tertiary: #7D5260;
+  --md-sys-color-on-tertiary: #FFFFFF;
+  --md-sys-color-tertiary-container: #FFD8E4;
+  --md-sys-color-on-tertiary-container: #31111D;
+  --md-sys-color-error: #B3261E;
+  --md-sys-color-error-container: #F9DEDC;
+  --md-sys-color-on-error-container: #410E0B;
+  --md-sys-color-background: #FFFBFE;
+  --md-sys-color-on-background: #1C1B1F;
+  --md-sys-color-surface: #FFFBFE;
+  /* Often same as background */
+  --md-sys-color-on-surface: #1C1B1F;
+  --md-sys-color-surface-variant: #E7E0EC;
+  --md-sys-color-on-surface-variant: #49454F;
+  --md-sys-color-outline: #79747E;
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-inverse-surface: #313033;
+  --md-sys-color-inverse-on-surface: #F4EFF4;
+  --md-sys-color-inverse-primary: #D0BCFF;
+
+  /* Font */
+  --md-font-family: 'Roboto', sans-serif;
+
+  /* Roundedness */
+  --md-shape-corner-extra-small: 4px;
+  --md-shape-corner-small: 8px;
+  --md-shape-corner-medium: 12px;
+  --md-shape-corner-large: 16px;
+  --md-shape-corner-extra-large: 28px;
+  --md-shape-corner-full: 999px;
+  /* Pill shape */
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--md-font-family);
+  background-color: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-background);
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow: hidden;
+  /* Prevent body scroll */
+}
+
+h2 {
+  font-weight: 500;
+  color: var(--md-sys-color-primary);
+  margin-bottom: 1rem;
+  /* Add padding to match list items */
+}
+
+/* Main Layout */
+.app-container {
+  display: flex;
+  flex-grow: 1;
+  /* Allow container to fill height */
+  height: calc(100vh - 40px);
+  /* Full height minus status bar */
+  overflow: hidden;
+  /* Prevent container scroll */
+}
+
+.left-pane,
+.right-pane {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Prevent pane scroll */
+}
+
+.left-pane {
+  flex: 0 0 300px;
+  /* Fixed width for left pane */
+  background-color: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  border-right: 1px solid var(--md-sys-color-outline);
+}
+
+.right-pane {
+  flex: 1;
+  /* Takes remaining width */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Specific Sections */
+.playlist-add-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.video-section {
+  flex-grow: 1;
+  /* Video list takes available space */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Prevent section scroll */
+}
+
+.list-container {
+  flex-grow: 1;
+  /* Make list take available vertical space */
+  overflow-y: auto;
+  /* Enable vertical scrolling *within* the list */
+  background-color: var(--md-sys-color-surface);
+  border-radius: var(--md-shape-corner-medium);
+  padding: 0.5rem;
+  border: 1px solid var(--md-sys-color-outline);
+  margin-bottom: 1rem;
+}
+
+.item-list {
+  list-style: none;
+}
+
+.item-list li {
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.3rem;
+  border-radius: var(--md-shape-corner-small);
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-list li:hover {
+  background-color: rgba(0, 0, 0, 0.356);
+}
+
+.item-list li.selected {
+  /* Class to be added by JS */
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font-weight: 500;
+}
+
+.item-list li.list-item-placeholder {
+  font-style: italic;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: default;
+  text-align: center;
+  padding: 1rem;
+}
+
+/* Adjust video list item styling */
+#video-list li {
+  display: flex;
+  /* Use flexbox for layout */
+  justify-content: space-between;
+  /* Push button to the right */
+  align-items: center;
+  /* Vertically align items */
+  padding: 0.6rem 0.5rem 0.6rem 0.8rem;
+  /* Adjust padding slightly */
+  margin-bottom: 0.3rem;
+  align-content: center;
+  justify-content: center;
+  border-radius: var(--md-shape-corner-small);
+  cursor: default;
+  /* Default cursor, button will have pointer */
+  transition: background-color 0.2s ease-in-out;
+  white-space: nowrap;
+  /* overflow: hidden; no longer needed on li directly */
+  /* text-overflow: ellipsis; */
+}
+
+#video-list li:hover {
+  background-color: rgba(0, 0, 0, 0.356);
+}
+
+#video-list li.selected {
+  /* Keep selected style */
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font-weight: 500;
+}
+
+/* Style for the video title text span */
+.video-title {
+  flex-grow: 1;
+  /* Allow title to take up space */
+  overflow: hidden;
+  /* Hide overflow */
+  text-overflow: ellipsis;
+  /* Add ellipsis if too long */
+  margin-left: 0.5rem;
+  /* Space between title and button */
+}
+
+
+/* Style for the new Play button within the list item */
+.play-video-btn {
+  /* Inherit general btn styles */
+  padding: 0.3rem;
+  /* Smaller padding */
+  width: 32px;
+  /* Smaller size */
+  height: 32px;
+  flex-shrink: 0;
+  /* Prevent button from shrinking */
+  cursor: pointer;
+  /* Optional: Hide by default, show on hover */
+  /* opacity: 0; */
+  /* transition: opacity 0.2s ease-in-out; */
+}
+
+/* #video-list li:hover .play-video-btn { */
+/* opacity: 1; */
+/* } */
+
+/* Adjust icon size if needed */
+.play-video-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Inputs */
+#playlist-url-input {
+  flex-grow: 1;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-corner-full);
+  /* Pill shape */
+  background-color: var(--md-sys-color-surface);
+  font-size: 0.9rem;
+  color: var(--md-sys-color-on-surface);
+}
+
+#playlist-url-input:focus {
+  outline: 2px solid var(--md-sys-color-primary);
+  border-color: transparent;
+}
+
+/* Buttons */
+.btn {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: var(--md-shape-corner-full);
+  /* Pill shape */
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease;
+  text-transform: uppercase;
+  /* Material buttons often uppercase */
+  letter-spacing: 0.05em;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: rgba(0, 0, 0, 0.274);
+  color: rgba(0, 0, 0, 0.808);
+  border: none;
+}
+
+.btn-filled {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  transition: 0.2s ease;
+}
+
+.btn-filled:hover:not(:disabled) {
+  background-color: var(--md-sys-color-primary-hover);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.btn-text {
+  background-color: transparent;
+  color: var(--md-sys-color-primary);
+  padding: 0.6rem 0.8rem;
+  /* Less padding for text buttons */
+}
+
+.btn-text:hover:not(:disabled) {
+  background-color: rgba(var(--md-sys-color-primary-rgb, 103, 80, 164), 0.5);
+  /* Use RGB version if defined, fallback */
+}
+
+.btn-icon {
+  background-color: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  /* Icon color */
+  border-radius: 50%;
+  /* Circular */
+  padding: 0.5rem;
+  /* Adjust for icon size */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.btn-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.btn-icon:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: space-around;
+  /* Space out remove/refresh */
+  padding: 0.5rem 0;
+}
+
+/* Playback Controls */
+.playback-controls {
+  padding: 0.8rem 1rem;
+  border-top: 1px solid var(--md-sys-color-outline);
+  background-color: var(--md-sys-color-surface-variant);
+  /* Slightly different background */
+  border-radius: var(--md-shape-corner-medium);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 60px;
+  /* Ensure minimum height */
+}
+
+#current-track-info {
+  font-size: 0.9rem;
+  color: var(--md-sys-color-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 1rem;
+}
+
+#now-playing-title {
+  font-weight: 500;
+}
+
+.controls-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Adjust controls-main layout */
+.controls-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 1rem;
+  /* Add gap between info and controls */
+}
+
+.playback-mode-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* Adjust spacing between these buttons */
+}
+
+/* Ensure controls-right arranges its children (buttons group, volume, mode controls) */
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem; /* Space between button groups / volume */
+}
+
+
+/* NEW: Volume Control Container */
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  /* Space between icon and slider */
+  min-width: 150px;
+  /* Give volume control some minimum space */
+}
+
+.volume-icon {
+  width: 20px;
+  height: 20px;
+  fill: var(--md-sys-color-on-surface-variant);
+  flex-shrink: 0;
+}
+
+/* NEW: Volume Bar Styling */
+#volume-bar {
+  /* Similar to seek-bar but maybe smaller */
+  flex-grow: 1;
+  /* Allow slider to take space */
+  cursor: pointer;
+  appearance: none;
+  width: 100%;
+  /* Take width within its container */
+  height: 5px;
+  /* Slightly thinner track */
+  background: var(--md-sys-color-surface);
+  border-radius: var(--md-shape-corner-full);
+  outline: none;
+  transition: background 0.2s ease;
+  border: 1px solid var(--md-sys-color-outline);
+}
+
+#volume-bar:disabled {
+  /* Should not be disabled often */
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* --- Volume Bar WebKit --- */
+#volume-bar::-webkit-slider-runnable-track {
+  height: 5px;
+  background: var(--md-sys-color-primary-container);
+  /* Or just surface? */
+  border-radius: var(--md-shape-corner-full);
+}
+
+#volume-bar::-webkit-slider-thumb {
+  appearance: none;
+  margin-top: -5.5px;
+  /* Center thumb: (track_height - thumb_height) / 2 */
+  width: 16px;
+  height: 16px;
+  background: var(--md-sys-color-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* --- Volume Bar Firefox --- */
+#volume-bar::-moz-range-track {
+  height: 5px;
+  background: var(--md-sys-color-outline);
+  border-radius: var(--md-shape-corner-full);
+}
+
+#volume-bar::-moz-range-progress {
+  height: 5px;
+  background: var(--md-sys-color-primary);
+  border-radius: var(--md-shape-corner-full);
+}
+
+#volume-bar::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--md-sys-color-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* Status Bar */
+.status-bar {
+  padding: 0.5rem 1rem;
+  margin: 0.5rem 0 00 0; 
+  background-color: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface);
+  font-size: 0.85rem;
+  text-align: center;
+  height: 40px;
+  /* Fixed height */
+  line-height: calc(40px - 1rem);
+  /* Center text vertically */
+  border-radius: var(--md-shape-corner-medium);
+  border: 1px solid var(--md-sys-color-outline);
+}
+
+/* Update Playback Controls Layout */
+.playback-controls {
+  padding: 0.5rem 1rem;
+  /* Adjust padding */
+  border: 1px solid var(--md-sys-color-outline);
+  background-color: var(--md-sys-color-surface-variant);
+  display: flex;
+  flex-direction: column;
+  /* Stack vertically */
+  min-height: 80px;
+  /* Adjust height */
+}
+
+.seek-bar-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0.75rem;
+  /* Space between time and bar */
+  margin-bottom: 0.3rem;
+  /* Space below seek bar */
+}
+
+.time-display {
+  font-size: 0.8rem;
+  color: var(--md-sys-color-on-surface-variant);
+  min-width: 3em;
+  /* Prevent layout shift */
+  text-align: center;
+}
+
+.controls-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+#current-track-info {
+  /* (Keep existing styles, maybe adjust margin) */
+  margin-right: 1rem;
+  flex-shrink: 1;
+  /* Allow shrinking */
+  min-width: 100px;
+  /* Prevent it getting too small */
+}
+
+.controls-buttons {
+  /* (Keep existing styles) */
+  flex-shrink: 0;
+  /* Prevent buttons shrinking */
+}
+
+
+/* Seek Bar Styling (Input Range) */
+#seek-bar {
+  flex-grow: 1;
+  cursor: pointer;
+  appearance: none;
+  /* Override default look */
+  width: 100%;
+  height: 6px;
+  /* Track height */
+  background: var(--md-sys-color-surface);
+  /* Track background */
+  border-radius: var(--md-shape-corner-full);
+  outline: none;
+  transition: background 0.2s ease;
+  border: 1px solid var(--md-sys-color-outline);
+  /* Subtle border */
+}
+
+#seek-bar:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* --- WebKit (Chrome, Safari, Edge) --- */
+#seek-bar::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  cursor: pointer;
+  background: var(--md-sys-color-primary-container);
+  /* Progress fill color (approx) */
+  border-radius: var(--md-shape-corner-full);
+}
+
+/* Need JS to dynamically set background gradient for actual progress */
+
+#seek-bar::-webkit-slider-thumb {
+  appearance: none;
+  margin-top: -5px;
+  /* Center thumb vertically ( (track_height - thumb_height) / 2 ) */
+  width: 16px;
+  /* Thumb size */
+  height: 16px;
+  background: var(--md-sys-color-primary);
+  /* Thumb color */
+  border-radius: 50%;
+  /* Circular thumb */
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Mozilla Firefox --- */
+#seek-bar::-moz-range-track {
+  width: 100%;
+  height: 6px;
+  cursor: pointer;
+  background: var(--md-sys-color-outline);
+  /* Track background */
+  border-radius: var(--md-shape-corner-full);
+}
+
+/* Firefox uses ::-moz-range-progress for the fill */
+#seek-bar::-moz-range-progress {
+  height: 6px;
+  background: var(--md-sys-color-primary);
+  /* Progress fill color */
+  border-radius: var(--md-shape-corner-full);
+}
+
+#seek-bar::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--md-sys-color-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  /* Remove default border */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Dark Mode Overrides --- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Purple Accent Palette (Material Design 3 Dark Theme) --- */
+    --md-sys-color-primary: #D0BCFF;
+    --md-sys-color-primary-hover: #a696ce;
+    /* Light Purple for Primary Action */
+    --md-sys-color-on-primary: #381E72;
+    /* Dark Purple for text/icons on Primary */
+    --md-sys-color-primary-container: #4F378A;
+    /* Mid-Dark Purple container background */
+    --md-sys-color-on-primary-container: #EADDFF;
+    /* Light Purple for text/icons on container */
+
+    /* Keeping Neutral Variants for Secondary/Tertiary */
+    --md-sys-color-secondary: #CCC2DC;
+    --md-sys-color-on-secondary: #332D41;
+    --md-sys-color-secondary-container: #4A4458;
+    --md-sys-color-on-secondary-container: #E8DEF8;
+    --md-sys-color-tertiary: #EFB8C8;
+    --md-sys-color-on-tertiary: #492532;
+    --md-sys-color-tertiary-container: #633B48;
+    --md-sys-color-on-tertiary-container: #FFD8E4;
+
+    /* Dark Theme Error Colors */
+    --md-sys-color-error: #f2b8b5;
+    /* Or use #FFB4AB for standard Material dark error */
+    --md-sys-color-on-error: #601410;
+    /* Corresponding dark text */
+    --md-sys-color-error-container: #8c1d18;
+    /* Or use #93000A */
+    --md-sys-color-on-error-container: #f9dedc;
+    /* Or use #FFDAD6 */
+
+
+    /* Core Dark Theme Surface/Background Colors */
+    --md-sys-color-background: #1C1B1F; /* Updated standard dark background */
+    --md-sys-color-on-background: #E6E1E5;
+    --md-sys-color-surface: #1C1B1F;  /* Surface same as background */
+    --md-sys-color-on-surface: #E6E1E5;
+    --md-sys-color-surface-variant: #3e3c46;
+    --md-sys-color-on-surface-variant: #CAC4D0;
+    --md-sys-color-outline: #938F99;
+
+    /* Inverse colors */
+    --md-sys-color-inverse-surface: #E6E1E5;
+    --md-sys-color-inverse-on-surface: #313033;
+    /* Inverse Primary matches Light Primary --- */
+    --md-sys-color-inverse-primary: #6750A4;
+    /* Original Light Theme Primary */
+
+
+    --md-sys-color-shadow: #000000;
+  }
+
+}
