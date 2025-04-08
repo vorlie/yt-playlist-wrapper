@@ -147,18 +147,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (isAuthenticated) {
       const token = getToken();
-      console.log(
-        "[fetchAPI] Token retrieved:",
-        token ? token.substring(0, 10) + "..." : token
-      ); // <-- Log token value
 
       if (token) {
-        console.log("[fetchAPI] Adding Authorization header..."); // <-- Log if block entered
         headers["Authorization"] = `Bearer ${token}`;
       } else {
-        console.warn(
-          "[fetchAPI] isAuthenticated is true, but NO TOKEN found by getToken(). Logging out."
-        ); // <-- Log if token missing
         updateStatus("Authentication required. Please login.", true);
         handleLogout();
         throw new Error("Authentication token not found.");
@@ -167,12 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("[fetchAPI] No authentication required for this request.");
     }
 
-    let response;
     try {
-      console.log(
-        "[fetchAPI] Sending request with final headers:",
-        JSON.stringify(headers)
-      ); // <-- Log final headers
       const response = await fetch(url, { ...options, headers }); // Include headers
 
       // Handle 401 Unauthorized specifically FIRST
