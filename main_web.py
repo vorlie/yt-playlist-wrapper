@@ -227,52 +227,68 @@ async def delete_user_playlist(
 # --- Video & Stream Endpoints (TODO: Secure if needed) ---
 
 @app.get("/api/playlists/{playlist_id}/videos", response_model=List[VideoResponse])
-# --- TODO: Secure this - Add user dependency and check ownership ---
+# --- MODIFIED: Added auth dependency ---
 async def get_videos_in_playlist(
     playlist_id: int = Path(..., title="The database ID of the playlist", ge=1),
-    # current_user: auth.User = Depends(auth.get_current_active_user) # Add this later
+    current_user: auth.User = Depends(auth.get_current_active_user) # Require login
 ):
-    """Gets the list of videos for a given playlist ID. (Currently insecure)"""
-    print(f"Received request for videos in playlist ID: {playlist_id}")
-    # --- TODO: Check Ownership ---
-    # owner_id = await database.get_playlist_owner(playlist_id) # Need this DB function
-    # if owner_id is None or owner_id != current_user.id:
-    #    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    """
+    Gets the list of videos for a given playlist ID, ensuring the
+    playlist belongs to the current logged-in user.
+    """
+    print(f"Received request for videos in playlist ID: {playlist_id} by user: {current_user.username}")
 
-    # --- Insecure URL fetch --- (Needs DB function get_playlist_url_by_id)
-    playlist_url = None
-    async with aiosqlite.connect(database.DATABASE_PATH) as db:
-        cursor = await db.execute("SELECT url FROM playlists WHERE id=?", (playlist_id,))
-        row = await cursor.fetchone();
-        if row: playlist_url = row[0]
-    # --- End insecure logic ---
+    # --- NEW: Check Ownership ---
+    owner_id = await database.get_playlist_owner(playlist_id)
+    if owner_id is None:
+        print(f"Playlist ID {playlist_id} not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Playlist with ID {playlist_id} not found."
+        )
+    if owner_id != current_user.id:
+        print(f"User {current_user.username} does not own playlist ID {playlist_id}.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, # Use 403 Forbidden
+            detail="Not authorized to access this playlist's videos"
+        )
+    # --- End Ownership Check ---
 
+    # --- Get Playlist URL (using new DB function) ---
+    playlist_url = await database.get_playlist_url_by_id(playlist_id)
     if not playlist_url:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Playlist with ID {playlist_id} not found.")
+        # Should not happen if owner check passed, but handle defensively
+        print(f"Playlist URL for ID {playlist_id} not found despite ownership check.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Playlist URL not found for ID {playlist_id}."
+        )
 
+    # Fetch videos using yt-dlp (unchanged from here)
+    print(f"Fetching videos from URL: {playlist_url} for authorized user {current_user.username}")
     videos = await youtubedl.get_playlist_videos(playlist_url)
     if videos is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to fetch videos for playlist ID {playlist_id}.")
+
     return videos
 
-@app.get("/api/stream_url", response_model=StreamResponse) # <-- Use new response model
-# --- TODO: Secure this? (Optional - Require login?) ---
-async def get_stream_and_thumb_url( # Renamed function slightly for clarity
+
+@app.get("/api/stream_url", response_model=StreamResponse)
+# --- MODIFIED: Added auth dependency ---
+async def get_stream_and_thumb_url(
     video_url: str = Query(..., title="The full YouTube video URL"),
-    # current_user: auth.User = Depends(auth.get_current_active_user) # Add later if needed
+    current_user: auth.User = Depends(auth.get_current_active_user) # Require login
 ):
     """
     Gets the direct audio stream URL and a thumbnail URL for a given video URL.
+    Requires user to be logged in.
     """
-    print(f"Received request for stream/thumb URL for video: {video_url}")
+    print(f"Received request for stream/thumb URL for video: {video_url} by user: {current_user.username}")
 
-    # Call the updated utility function which returns a dict or None
     stream_data = await youtubedl.get_audio_stream_url(video_url)
 
-    # Check if data was received AND if the essential stream_url exists
     if not stream_data or not stream_data.get('stream_url'):
         print(f"Failed to get stream URL for: {video_url}")
-        # Use 404 Not Found if stream couldn't be retrieved
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Could not retrieve audio stream URL for the video."
@@ -280,7 +296,6 @@ async def get_stream_and_thumb_url( # Renamed function slightly for clarity
 
     print(f"Returning stream URL: {stream_data.get('stream_url', 'N/A')[:50]}...")
     print(f"Returning thumbnail URL: {stream_data.get('thumbnail_url', 'N/A')}")
-    print(f"Returning uploader: {stream_data.get('uploader', 'N/A')}")
+    # print(f"Returning uploader: {stream_data.get('uploader', 'N/A')}") # Need to add uploader fetch first
 
-    # Return the dictionary - FastAPI will validate it against StreamResponse
     return stream_data

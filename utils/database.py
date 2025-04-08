@@ -144,4 +144,37 @@ async def remove_playlist(playlist_id: int, user_id: int) -> bool:
         print(f"Error removing playlist id {playlist_id} for user ID {user_id}: {e}")
         return False
 
+async def get_playlist_owner(playlist_id: int) -> Optional[int]:
+    """Retrieves the user ID of the owner of a specific playlist."""
+    try:
+        async with aiosqlite.connect(DATABASE_PATH) as db:
+            cursor = await db.execute(
+                "SELECT user_id FROM playlists WHERE id = ?",
+                (playlist_id,)
+            )
+            row = await cursor.fetchone()
+            if row:
+                return row[0] # Return the user_id
+            return None # Playlist not found
+    except Exception as e:
+        print(f"Error getting owner for playlist id {playlist_id}: {e}")
+        return None
+
+async def get_playlist_url_by_id(playlist_id: int) -> Optional[str]:
+    """Retrieves the URL of a specific playlist by its ID."""
+    # Note: Could be combined with get_playlist_owner if needed often
+    try:
+        async with aiosqlite.connect(DATABASE_PATH) as db:
+            cursor = await db.execute(
+                "SELECT url FROM playlists WHERE id = ?",
+                (playlist_id,)
+            )
+            row = await cursor.fetchone()
+            if row:
+                return row[0] # Return the url
+            return None # Playlist not found
+    except Exception as e:
+        print(f"Error getting URL for playlist id {playlist_id}: {e}")
+        return None
+
 # --- (Keep Video Management Functions if added later) ---

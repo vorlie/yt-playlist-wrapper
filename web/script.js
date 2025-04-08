@@ -141,22 +141,38 @@ document.addEventListener("DOMContentLoaded", () => {
     //updateStatus("Communicating with backend...");
     const headers = { ...(options.headers || {}) }; // Start with existing headers
 
+    console.log(
+      `[fetchAPI] Called for URL: ${url}, isAuthenticated: ${isAuthenticated}`
+    ); // <-- Log args
+
     if (isAuthenticated) {
       const token = getToken();
+      console.log(
+        "[fetchAPI] Token retrieved:",
+        token ? token.substring(0, 10) + "..." : token
+      ); // <-- Log token value
+
       if (token) {
+        console.log("[fetchAPI] Adding Authorization header..."); // <-- Log if block entered
         headers["Authorization"] = `Bearer ${token}`;
       } else {
-        // If auth is required but no token, fail early or redirect?
         console.warn(
-          "fetchAPI called with isAuthenticated=true, but no token found."
-        );
+          "[fetchAPI] isAuthenticated is true, but NO TOKEN found by getToken(). Logging out."
+        ); // <-- Log if token missing
         updateStatus("Authentication required. Please login.", true);
-        handleLogout(); // Treat as logged out
+        handleLogout();
         throw new Error("Authentication token not found.");
       }
+    } else {
+      console.log("[fetchAPI] No authentication required for this request.");
     }
 
+    let response;
     try {
+      console.log(
+        "[fetchAPI] Sending request with final headers:",
+        JSON.stringify(headers)
+      ); // <-- Log final headers
       const response = await fetch(url, { ...options, headers }); // Include headers
 
       // Handle 401 Unauthorized specifically FIRST
@@ -205,7 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       // Avoid showing status again if it was a 401 handled above
       if (error.message !== "Unauthorized (401)") {
-        console.error("API Fetch Error:", error);
+        console.error("[fetchAPI] Error:", error);
         updateStatus(`Error: ${error.message}`, true, 5000);
       }
       throw error; // Re-throw
@@ -573,12 +589,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const videos = await fetchAPI(
         `/api/playlists/${playlistId}/videos`,
         {},
-        false
-      ); // <-- Set to true if endpoint secured
+        true
+      );
       renderVideoList(videos);
       updateStatus(`Videos loaded.`, false, 2000);
     } catch (error) {
-      /* ... */
+      videoList.innerHTML =
+        '<li class="list-item-placeholder">Error loading videos.</li>';
     } finally {
       refreshPlaylistBtn.disabled = currentSelectedPlaylistId !== null;
     }
@@ -616,7 +633,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const streamData = await fetchAPI(
         `/api/stream_url?video_url=${encodeURIComponent(videoWebpageUrl)}`,
         {},
-        false // Set to true if endpoint secured
+        true // Set to true if endpoint secured
       );
 
       if (
