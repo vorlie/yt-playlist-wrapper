@@ -258,34 +258,35 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateUIAfterLoginStateChange() {
     const token = getToken();
     if (token) {
-        // Logged In state
-        loginSection.style.display = 'none';
-        appContainer.style.display = 'flex';
-        statusMessage.style.display = 'flex';
-        fetchAndDisplayCurrentUser(); // Fetch user and playlists
+      // Logged In state
+      loginSection.style.display = "none";
+      appContainer.style.display = "flex";
+      statusMessage.style.display = "flex";
+      fetchAndDisplayCurrentUser(); // Fetch user and playlists
     } else {
-        // --- Logged Out state ---
-        loginSection.style.display = 'block'; // Show the whole login/register section
-        appContainer.style.display = 'none';
-        statusMessage.textContent = "Please Login";
-        statusMessage.style.display = 'flex';
+      // --- Logged Out state ---
+      loginSection.style.display = "block"; // Show the whole login/register section
+      appContainer.style.display = "none";
+      statusMessage.textContent = "Please Login";
+      statusMessage.style.display = "flex";
 
-        // Ensure the login form is visible and register form is hidden by default when logged out
-        showLoginForm();
+      // Ensure the login form is visible and register form is hidden by default when logged out
+      showLoginForm();
 
-        // Clear app UI data
-        playlistList.innerHTML = '<li class="list-item-placeholder">Login to view playlists...</li>';
-        videoList.innerHTML = '';
-        nowPlayingTitle.textContent = 'Nothing';
-        currentSelectedPlaylistId = null;
-        currentSelectedVideoUrl = null;
-        currentVideoTitle = null;
-        currentVideoListItem = null;
-        if(audioElement) audioElement.src = "";
-        updatePlaylistActionButtons();
-        updatePlaybackButtons(false);
+      // Clear app UI data
+      playlistList.innerHTML =
+        '<li class="list-item-placeholder">Login to view playlists...</li>';
+      videoList.innerHTML = "";
+      nowPlayingTitle.textContent = "Nothing";
+      currentSelectedPlaylistId = null;
+      currentSelectedVideoUrl = null;
+      currentVideoTitle = null;
+      currentVideoListItem = null;
+      if (audioElement) audioElement.src = "";
+      updatePlaylistActionButtons();
+      updatePlaybackButtons(false);
     }
-}
+  }
 
   function updateLoopButton() {
     if (!loopBtn) return; // Exit if button doesn't exist
@@ -511,12 +512,24 @@ document.addEventListener("DOMContentLoaded", () => {
   // Function to handle adding a playlist
   async function handleAddPlaylist() {
     const url = playlistUrlInput.value.trim();
-    if (!url || !url.includes("list=")) {
-      /* ... */ return;
+
+    // Check if URL is empty or doesn't start with the specific prefix
+    const requiredPrefix = "https://www.youtube.com/playlist?list="; // Define the required prefix
+    if (!url || !url.startsWith(requiredPrefix)) {
+      // Update status message to reflect the specific requirement
+      updateStatus(
+        `Please enter a valid URL starting with '${requiredPrefix}'`,
+        true
+      );
+      return; // Stop execution if validation fails
     }
+    // --- End Modification ---
+
     addPlaylistBtn.disabled = true;
-    updateStatus(`Adding playlist: ${url}...`);
+    updateStatus(`Adding playlist: ${url}...`); 
+
     try {
+      // --- Authentication flag 'true' is correct here ---
       const newPlaylist = await fetchAPI(
         "/api/playlists",
         {
@@ -524,8 +537,8 @@ document.addEventListener("DOMContentLoaded", () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url: url }),
         },
-        true
-      ); // <-- Pass true for authentication
+        true // Requires authentication
+      );
       await loadInitialPlaylists(); // Reload list
       playlistUrlInput.value = "";
       updateStatus(
@@ -533,7 +546,10 @@ document.addEventListener("DOMContentLoaded", () => {
         false
       );
     } catch (error) {
-      /* ... */
+      // Error message handled by fetchAPI, just log maybe
+      console.error("Error adding playlist:", error);
+      // Optionally provide specific feedback based on error type if needed
+      updateStatus(`Failed to add playlist: ${error.message}`, true);
     } finally {
       addPlaylistBtn.disabled = false;
     }
@@ -753,24 +769,24 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function showLoginForm() {
-    loginFormContainer.style.display = "block"; 
+    loginFormContainer.style.display = "block";
     registerFormContainer.style.display = "none";
     // Clear potential messages from the other form
     registerMessage.textContent = "";
     registerMessage.classList.remove("error-message");
     // Clear input fields (optional)
-    registerUsernameInput.value = '';
-    registerPasswordInput.value = '';
-    registerConfirmPasswordInput.value = '';
+    registerUsernameInput.value = "";
+    registerPasswordInput.value = "";
+    registerConfirmPasswordInput.value = "";
   }
 
   function showRegisterForm() {
     loginFormContainer.style.display = "none";
-    registerFormContainer.style.display = "block"; 
+    registerFormContainer.style.display = "block";
     // Clear potential messages from the other form
     loginError.textContent = "";
-    loginUsernameInput.value = '';
-    loginPasswordInput.value = '';
+    loginUsernameInput.value = "";
+    loginPasswordInput.value = "";
   }
 
   async function handleRegistration(event) {
