@@ -26,14 +26,19 @@ document.addEventListener("DOMContentLoaded", () => {
     "close-browser-notice-btn"
   );
   const loginSection = document.getElementById("login-section");
+  const loginFormContainer = document.getElementById("login-form-container");
   const loginUsernameInput = document.getElementById("login-username");
   const loginPasswordInput = document.getElementById("login-password");
   const loginBtn = document.getElementById("login-btn");
   const loginError = document.getElementById("login-error");
+  const showRegisterLink = document.getElementById("show-register-link");
+  const showLoginLink = document.getElementById("show-login-link");
   const appContainer = document.getElementById("app-container"); // Main app container
   const userInfoUsername = document.getElementById("user-info-username");
   const logoutBtn = document.getElementById("logout-btn");
-
+  const registerFormContainer = document.getElementById(
+    "register-form-container"
+  );
   const registerUsernameInput = document.getElementById("register-username");
   const registerPasswordInput = document.getElementById("register-password");
   const registerConfirmPasswordInput = document.getElementById(
@@ -136,7 +141,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }, duration);
   }
 
-  // --- MODIFIED: Generic API Fetch function to handle Auth ---
   async function fetchAPI(url, options = {}, isAuthenticated = false) {
     //updateStatus("Communicating with backend...");
     const headers = { ...(options.headers || {}) }; // Start with existing headers
@@ -172,14 +176,11 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (e) {
           /* Ignore if response not json */
         }
-
-        // --- NEW: Check for specific expiry message ---
         if (errorDetail === "Session has expired") {
           updateStatus("Session has expired. Please login again.", true);
         } else {
           updateStatus("Session invalid. Please login again.", true); // Generic invalid token message
         }
-        // --- End New Check ---
 
         handleLogout(); // Clear token and log out UI
         throw new Error(errorDetail); // Throw specific or generic detail
@@ -257,29 +258,34 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateUIAfterLoginStateChange() {
     const token = getToken();
     if (token) {
-      // Token exists, try to fetch user data to verify it and update UI
-      fetchAndDisplayCurrentUser();
+        // Logged In state
+        loginSection.style.display = 'none';
+        appContainer.style.display = 'flex';
+        statusMessage.style.display = 'flex';
+        fetchAndDisplayCurrentUser(); // Fetch user and playlists
     } else {
-      // No Token - Show Login Screen
-      loginSection.style.display = "block"; // Or 'flex' based on its CSS
-      appContainer.style.display = "none"; // Hide main app
-      statusMessage.textContent = "Please Login";
-      statusMessage.style.display = "flex"; // Show login message
-      // Clear any potentially sensitive data shown in the app UI
-      playlistList.innerHTML =
-        '<li class="list-item-placeholder">Login to view playlists...</li>';
-      videoList.innerHTML = "";
-      nowPlayingTitle.textContent = "Nothing";
-      // Reset other states if needed
-      currentSelectedPlaylistId = null;
-      currentSelectedVideoUrl = null;
-      currentVideoTitle = null;
-      currentVideoListItem = null;
-      if (audioElement) audioElement.src = "";
-      updatePlaylistActionButtons();
-      updatePlaybackButtons(false);
+        // --- Logged Out state ---
+        loginSection.style.display = 'block'; // Show the whole login/register section
+        appContainer.style.display = 'none';
+        statusMessage.textContent = "Please Login";
+        statusMessage.style.display = 'flex';
+
+        // Ensure the login form is visible and register form is hidden by default when logged out
+        showLoginForm();
+
+        // Clear app UI data
+        playlistList.innerHTML = '<li class="list-item-placeholder">Login to view playlists...</li>';
+        videoList.innerHTML = '';
+        nowPlayingTitle.textContent = 'Nothing';
+        currentSelectedPlaylistId = null;
+        currentSelectedVideoUrl = null;
+        currentVideoTitle = null;
+        currentVideoListItem = null;
+        if(audioElement) audioElement.src = "";
+        updatePlaylistActionButtons();
+        updatePlaybackButtons(false);
     }
-  }
+}
 
   function updateLoopButton() {
     if (!loopBtn) return; // Exit if button doesn't exist
@@ -744,6 +750,27 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     }
+  }
+
+  function showLoginForm() {
+    loginFormContainer.style.display = "block"; 
+    registerFormContainer.style.display = "none";
+    // Clear potential messages from the other form
+    registerMessage.textContent = "";
+    registerMessage.classList.remove("error-message");
+    // Clear input fields (optional)
+    registerUsernameInput.value = '';
+    registerPasswordInput.value = '';
+    registerConfirmPasswordInput.value = '';
+  }
+
+  function showRegisterForm() {
+    loginFormContainer.style.display = "none";
+    registerFormContainer.style.display = "block"; 
+    // Clear potential messages from the other form
+    loginError.textContent = "";
+    loginUsernameInput.value = '';
+    loginPasswordInput.value = '';
   }
 
   async function handleRegistration(event) {
@@ -1393,6 +1420,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
   logoutBtn.addEventListener("click", handleLogout);
+
+  // --- NEW: Toggle Link Listeners ---
+  showRegisterLink.addEventListener("click", (event) => {
+    event.preventDefault(); // Stop link default behavior
+    showRegisterForm();
+  });
+
+  showLoginLink.addEventListener("click", (event) => {
+    event.preventDefault(); // Stop link default behavior
+    showLoginForm();
+  });
 
   // --- Initial Load ---
   updateUIAfterLoginStateChange();
