@@ -619,7 +619,6 @@ document.addEventListener("DOMContentLoaded", () => {
         false // Set to true if endpoint secured
       );
 
-      // --- MODIFIED: Check the dictionary response ---
       if (
         streamData &&
         typeof streamData === "object" &&
@@ -863,7 +862,6 @@ document.addEventListener("DOMContentLoaded", () => {
     updateUIAfterLoginStateChange(); // Update UI to show login screen
   }
 
-  // Function to update playlist action buttons enable/disable state
   function updatePlaylistActionButtons() {
     const enabled = currentSelectedPlaylistId !== null;
     removePlaylistBtn.disabled = !enabled;
@@ -882,14 +880,12 @@ document.addEventListener("DOMContentLoaded", () => {
         `Media Session: Updating metadata - Title: ${currentVideoTitle}, Uploader: ${currentVideoUploader}`
       );
 
-      // --- MODIFIED: Create metadata object ---
       const metadata = {
         title: currentVideoTitle,
         artist: currentVideoUploader,
         //album: album,
       };
 
-      // --- NEW: Conditionally add artwork ---
       if (currentVideoThumbnailUrl) {
         console.log(
           `Media Session: Adding artwork: ${currentVideoThumbnailUrl}`
@@ -897,7 +893,6 @@ document.addEventListener("DOMContentLoaded", () => {
         metadata.artwork = [
           {
             src: currentVideoThumbnailUrl,
-            // You might need to specify sizes/types if you have that info
             // sizes: '512x512',
             // type: 'image/jpeg'
           },
@@ -964,7 +959,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error setting 'nexttrack' handler:", e);
     }
 
-    // You can add seekforward/seekbackward later if desired
+    // If I ever want to add seek functionality:
     // try { navigator.mediaSession.setActionHandler('seekforward', () => { /* seek logic */ }); } catch (e) {}
     // try { navigator.mediaSession.setActionHandler('seekbackward', () => { /* seek logic */ }); } catch (e) {}
   } else {
@@ -1264,8 +1259,6 @@ document.addEventListener("DOMContentLoaded", () => {
     currentTimeDisplay.textContent = "0:00";
     totalDurationDisplay.textContent = "0:00";
     seekBar.style.background = "";
-    // Remove the line that clears the title here:
-    // nowPlayingTitle.textContent = "Nothing"; // <-- REMOVED
   });
 
   // Metadata and Time Update Listeners for Seek Bar ---
