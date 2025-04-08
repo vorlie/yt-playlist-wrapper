@@ -19,6 +19,12 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM fully loaded and parsed");
 
   // --- Get DOM Element References ---
+  const browserNoticeElement = document.getElementById(
+    "browser-notice-element"
+  );
+  const closeBrowserNoticeBtn = document.getElementById(
+    "close-browser-notice-btn"
+  );
   const loginSection = document.getElementById("login-section");
   const loginUsernameInput = document.getElementById("login-username");
   const loginPasswordInput = document.getElementById("login-password");
@@ -67,6 +73,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentVideoTitle = null; // Store the title of the video being loaded/played ---
   let statusTimeoutId = null;
   let currentVideoListItem = null;
+  let currentVideoThumbnailUrl = null;
+  let currentVideoUploader = null;
   let playbackMode = "none"; // Possible values: 'none', 'loop-one', 'loop-all'
   let currentUserToken = null;
 
@@ -580,53 +588,79 @@ document.addEventListener("DOMContentLoaded", () => {
   async function playVideo(videoWebpageUrl, videoTitle) {
     if (!videoWebpageUrl) return;
     updateStatus(`Getting audio stream for: ${videoTitle}...`);
-    nowPlayingTitle.textContent = videoTitle + " (Loading...)"; // Show loading state
-    currentVideoTitle = videoTitle; // --- Store the intended title ---
+    nowPlayingTitle.textContent = videoTitle + " (Loading...)";
+    currentVideoTitle = videoTitle; // Store the intended title
+    // --- Clear previous thumbnail ---
+    currentVideoThumbnailUrl = null;
     updatePlaybackButtons(false);
     seekBar.value = 0;
     seekBar.disabled = true;
     currentTimeDisplay.textContent = "0:00";
     totalDurationDisplay.textContent = "0:00";
 
-    // Clear 'selected' class from any previous video list item ---
+    // Clear 'selected' class from previous item
     if (currentVideoListItem) {
       currentVideoListItem.classList.remove("selected");
     }
-
-    // Find the new video list item and add the 'selected' class ---
+    // Find and select new item
     currentVideoListItem = videoList.querySelector(
       `li[data-webpage-url="${videoWebpageUrl}"]`
     );
     if (currentVideoListItem) {
       currentVideoListItem.classList.add("selected");
     }
-
     updatePrevNextButtons();
 
     try {
-      // Currently public, could change to require auth
-      const streamUrl = await fetchAPI(
+      // Fetch data (expecting an object now)
+      const streamData = await fetchAPI(
         `/api/stream_url?video_url=${encodeURIComponent(videoWebpageUrl)}`,
         {},
-        false // <-- Set to true if endpoint secured
+        false // Set to true if endpoint secured
       );
-      if (streamUrl && typeof streamUrl === "string") {
+
+      // --- MODIFIED: Check the dictionary response ---
+      if (
+        streamData &&
+        typeof streamData === "object" &&
+        streamData.stream_url
+      ) {
+        console.log("Received stream data:", streamData);
+        const streamUrl = streamData.stream_url;
+        currentVideoThumbnailUrl = streamData.thumbnail_url; // Store thumbnail URL
+        currentVideoUploader = streamData.uploader; // Store uploader name
+
         audioElement.src = streamUrl;
         updateStatus("Loading audio...", false);
+        // Media Session metadata will be updated by the 'play' event listener later
         audioElement.play().catch((e) => {
-          /*...*/
+          console.error("Error starting playback automatically:", e);
+          updateStatus("Ready to play. Press play.", false);
+          updatePlaybackButtons(false);
+          currentVideoTitle = null; // Clear state on immediate play error
+          currentVideoThumbnailUrl = null;
+          currentVideoUploader = null;
+          nowPlayingTitle.textContent = "Nothing";
+          if (currentVideoListItem) {
+            currentVideoListItem.classList.remove("selected");
+            currentVideoListItem = null;
+          }
         });
       } else {
-        throw new Error("Invalid stream URL received.");
+        // Handle cases where stream_url wasn't found or response wasn't expected object
+        console.error("Invalid or missing stream data received:", streamData);
+        throw new Error("Invalid stream data received from backend.");
       }
+      // --- End Modification ---
     } catch (error) {
-      // ... (error handling, including updatePlaybackButtons(false)) ...
+      // --- Error handling - ensure thumbnail URL is also cleared ---
       nowPlayingTitle.textContent = "Nothing";
       currentVideoTitle = null;
+      currentVideoThumbnailUrl = null; // Clear thumbnail on error
+      currentVideoUploader = null; // Clear uploader on error
       updateStatus(`Error getting stream: ${error.message}`, true);
-      updatePlaybackButtons(false); // This will also call updatePrevNextButtons
+      updatePlaybackButtons(false);
       if (currentVideoListItem) {
-        // Clear selection on error too
         currentVideoListItem.classList.remove("selected");
         currentVideoListItem = null;
       }
@@ -836,7 +870,138 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshPlaylistBtn.disabled = !enabled;
   }
 
+  function updateMediaSessionMetadata() {
+    if ("mediaSession" in navigator) {
+      if (!currentVideoTitle) {
+        navigator.mediaSession.metadata = null; // Clear metadata
+        console.log("Media Session: Metadata Cleared");
+        return;
+      }
+
+      console.log(
+        `Media Session: Updating metadata - Title: ${currentVideoTitle}, Uploader: ${currentVideoUploader}`
+      );
+
+      // --- MODIFIED: Create metadata object ---
+      const metadata = {
+        title: currentVideoTitle,
+        artist: currentVideoUploader,
+        //album: album,
+      };
+
+      // --- NEW: Conditionally add artwork ---
+      if (currentVideoThumbnailUrl) {
+        console.log(
+          `Media Session: Adding artwork: ${currentVideoThumbnailUrl}`
+        );
+        metadata.artwork = [
+          {
+            src: currentVideoThumbnailUrl,
+            // You might need to specify sizes/types if you have that info
+            // sizes: '512x512',
+            // type: 'image/jpeg'
+          },
+        ];
+      } else {
+        console.log("Media Session: No thumbnail URL available.");
+      }
+      // --- End New ---
+
+      navigator.mediaSession.metadata = new MediaMetadata(metadata);
+    }
+  }
+
+  // --- NEW: Media Session API Setup (Run Once on Load) ---
+  if ("mediaSession" in navigator) {
+    console.log("Media Session API supported. Setting action handlers...");
+
+    try {
+      navigator.mediaSession.setActionHandler("play", () => {
+        console.log("Media Session: Play action triggered.");
+        if (audioElement.paused) {
+          playBtn.click();
+        }
+      });
+    } catch (e) {
+      console.error("Error setting 'play' handler:", e);
+    }
+
+    try {
+      navigator.mediaSession.setActionHandler("pause", () => {
+        console.log("Media Session: Pause action triggered.");
+        if (!audioElement.paused) {
+          pauseBtn.click();
+        }
+      });
+    } catch (e) {
+      console.error("Error setting 'pause' handler:", e);
+    }
+
+    try {
+      navigator.mediaSession.setActionHandler("stop", () => {
+        console.log("Media Session: Stop action triggered.");
+        stopBtn.click();
+      });
+    } catch (e) {
+      console.error("Error setting 'stop' handler:", e);
+    }
+
+    try {
+      navigator.mediaSession.setActionHandler("previoustrack", () => {
+        console.log("Media Session: Previous Track action triggered.");
+        playPreviousTrack();
+      });
+    } catch (e) {
+      console.error("Error setting 'previoustrack' handler:", e);
+    }
+
+    try {
+      navigator.mediaSession.setActionHandler("nexttrack", () => {
+        console.log("Media Session: Next Track action triggered.");
+        playNextTrack();
+      });
+    } catch (e) {
+      console.error("Error setting 'nexttrack' handler:", e);
+    }
+
+    // You can add seekforward/seekbackward later if desired
+    // try { navigator.mediaSession.setActionHandler('seekforward', () => { /* seek logic */ }); } catch (e) {}
+    // try { navigator.mediaSession.setActionHandler('seekbackward', () => { /* seek logic */ }); } catch (e) {}
+  } else {
+    console.log("Media Session API not supported by this browser.");
+  }
+  // --- End Media Session Setup ---
+
   // --- Event Listeners ---
+  if (closeBrowserNoticeBtn && browserNoticeElement) {
+    closeBrowserNoticeBtn.addEventListener("click", () => {
+      browserNoticeElement.style.display = "none"; // Hide the notice
+      try {
+        // Set flag in localStorage so it doesn't show again
+        localStorage.setItem("browserNoticeShown", "true");
+        console.log("Browser notice dismissed and stored.");
+      } catch (e) {
+        console.error("Failed to set item in localStorage:", e);
+      }
+    });
+  }
+
+  if (browserNoticeElement) {
+    try {
+      const noticeShown = localStorage.getItem("browserNoticeShown");
+      if (noticeShown !== "true") {
+        // If flag not set to 'true', show the notice
+        browserNoticeElement.style.display = "flex";
+        console.log("Showing browser notice.");
+      } else {
+        console.log("Browser notice already shown/dismissed.");
+      }
+    } catch (e) {
+      console.error("Failed to access localStorage:", e);
+      // Optionally show notice anyway if localStorage fails?
+      // browserNoticeElement.style.display = 'flex';
+    }
+  }
 
   // (Keep listeners for Add, Remove, Refresh, Playlist Select)
   addPlaylistBtn.addEventListener("click", handleAddPlaylist);
@@ -960,6 +1125,11 @@ document.addEventListener("DOMContentLoaded", () => {
       currentVideoListItem.classList.remove("selected");
       currentVideoListItem = null;
     }
+    // --- Update Media Session ---
+    if (needsUpdate && "mediaSession" in navigator) {
+      navigator.mediaSession.playbackState = "none";
+      updateMediaSessionMetadata(); // Call to clear metadata
+    }
     // Optionally clear src:
     // audioElement.src = "";
   });
@@ -970,12 +1140,21 @@ document.addEventListener("DOMContentLoaded", () => {
     // Set title reliably when play starts
     nowPlayingTitle.textContent = currentVideoTitle || "Unknown Title";
     updateStatus(`Playing: ${nowPlayingTitle.textContent}`, false);
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.playbackState = "playing";
+      updateMediaSessionMetadata(); // Update metadata when play starts
+    }
   });
   // playing listener ---
   audioElement.addEventListener("playing", () => {
     updatePlaybackButtons(true);
     // Ensure title is set if missed by 'play' (e.g., after buffering)
     nowPlayingTitle.textContent = currentVideoTitle || "Unknown Title";
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.playbackState = "playing";
+      // Metadata likely set by 'play', but can update again if needed
+      // updateMediaSessionMetadata();
+    }
   });
 
   audioElement.addEventListener("pause", () => {
@@ -984,68 +1163,71 @@ document.addEventListener("DOMContentLoaded", () => {
       // Update status but keep title showing
       updateStatus(`Paused: ${nowPlayingTitle.textContent}`, false);
     }
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.playbackState = "paused";
+    }
   });
 
-  // ended listener ---
+  // --- MODIFIED: ended listener ---
   audioElement.addEventListener("ended", () => {
     console.log("Audio ended. Playback mode:", playbackMode);
-    // Clear title, reset buttons/seek bar visually first
+    // Reset most UI elements first
     nowPlayingTitle.textContent = "Nothing";
-    // currentVideoTitle = null; // Keep title in case of loop-one
     updateStatus("Finished.", false);
-    updatePlaybackButtons(false);
+    // Don't update buttons yet, depends on outcome
+    // updatePlaybackButtons(false); // Moved below
     audioElement.currentTime = 0;
     seekBar.value = 0;
     seekBar.style.background = `linear-gradient(to right, var(--md-sys-color-primary) 0%, var(--md-sys-color-surface) 0%)`;
+
+    const previouslyPlayingItem = currentVideoListItem; // Store ref before potential change
 
     // --- Logic based on playbackMode ---
     if (playbackMode === "loop-one") {
       console.log("Looping current song.");
       updateStatus(`Looping: ${currentVideoTitle}`, false, 1500);
+      // The 'play' event listener will handle updating Media Session state and metadata
       audioElement.play().catch((e) => console.error("Error looping song:", e));
     } else if (playbackMode === "loop-all") {
       console.log("Attempting to play next song (loop all).");
-      let nextPlaylistItem = currentVideoListItem
-        ? currentVideoListItem.nextElementSibling
-        : null;
-
-      // If no next sibling, loop back to the first item
-      if (!nextPlaylistItem && videoList.children.length > 0) {
-        // Check if the first child is not a placeholder
-        const firstChild = videoList.firstElementChild;
-        if (
-          firstChild &&
-          !firstChild.classList.contains("list-item-placeholder")
-        ) {
-          nextPlaylistItem = firstChild;
-          console.log("Looping back to first song.");
+      // Use the existing helper which calls playVideo
+      // The 'play' event listener in playVideo's flow will handle Media Session
+      playNextTrack();
+      // Check if playNextTrack actually failed to find/start a new track
+      // (currentVideoListItem would be null if it stopped)
+      // Need a slight delay or check state *after* potential async ops in playVideo
+      // For simplicity now, let's assume 'play' event handles success state.
+      // We only explicitly handle the stop case here if playNextTrack found nothing.
+      if (!currentVideoListItem && previouslyPlayingItem) {
+        // If selection was cleared because no next track...
+        console.log("Loop-all finished, stopping.");
+        // --- Update Media Session - Playback Stopped ---
+        currentVideoThumbnailUrl = null;
+        currentVideoUploader = null;
+        if ("mediaSession" in navigator) {
+          navigator.mediaSession.playbackState = "none";
+          updateMediaSessionMetadata(); // Clear metadata
         }
-      }
-
-      if (nextPlaylistItem && nextPlaylistItem.dataset.webpageUrl) {
-        const nextUrl = nextPlaylistItem.dataset.webpageUrl;
-        const nextTitle = nextPlaylistItem.dataset.title || "Unknown Title";
-        console.log("Playing next song:", nextTitle);
-        updateStatus(`Playing next: ${nextTitle}`, false, 1500);
-        playVideo(nextUrl, nextTitle); // Call playVideo for the next item
-      } else {
-        console.log("No next song found or list empty, stopping.");
-        // Clear selection if playback stops
-        if (currentVideoListItem) {
-          currentVideoListItem.classList.remove("selected");
-          currentVideoListItem = null;
-        }
-        currentVideoTitle = null; // Clear title only if stopping
+        updatePlaybackButtons(false); // Set final button state
       }
     } else {
       // playbackMode === 'none'
       console.log("Playback mode is 'none', stopping.");
-      // Clear selection if playback stops
+      // Clear selection and title
       if (currentVideoListItem) {
         currentVideoListItem.classList.remove("selected");
         currentVideoListItem = null;
       }
-      currentVideoTitle = null; // Clear title only if stopping
+      currentVideoThumbnailUrl = null;
+      currentVideoTitle = null;
+      currentVideoUploader = null;
+
+      // --- Update Media Session - Playback Stopped ---
+      if ("mediaSession" in navigator) {
+        navigator.mediaSession.playbackState = "none";
+        updateMediaSessionMetadata(); // Clear metadata (currentVideoTitle is null)
+      }
+      updatePlaybackButtons(false); // Set final button state
     }
   });
 
@@ -1061,11 +1243,16 @@ document.addEventListener("DOMContentLoaded", () => {
     currentTimeDisplay.textContent = "0:00";
     totalDurationDisplay.textContent = "0:00";
     seekBar.style.background = "";
-
+    currentVideoThumbnailUrl = null;
+    currentVideoUploader = null;
     // --- NEW: Clear 'selected' class on error ---
     if (currentVideoListItem) {
       currentVideoListItem.classList.remove("selected");
       currentVideoListItem = null;
+    }
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.playbackState = "none";
+      updateMediaSessionMetadata(); // Clear metadata
     }
   });
 
@@ -1225,4 +1412,5 @@ document.addEventListener("DOMContentLoaded", () => {
   // Call helper to set initial icon and volume bar background
   updateVolumeIcon();
   updateLoopButton();
+  updatePrevNextButtons();
 }); // End DOMContentLoaded

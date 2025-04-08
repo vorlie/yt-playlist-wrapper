@@ -55,6 +55,10 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+class StreamResponse(BaseModel):
+    stream_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    uploader: Optional[str] = None
 
 # --- REMOVED: Placeholder User Model ---
 # class User(BaseModel): ... (Now using User model defined/returned by auth)
@@ -251,16 +255,32 @@ async def get_videos_in_playlist(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to fetch videos for playlist ID {playlist_id}.")
     return videos
 
-@app.get("/api/stream_url", response_model=str)
-# --- TODO: Secure this? (Optional - Require login to get streams?) ---
-async def get_stream_url(
+@app.get("/api/stream_url", response_model=StreamResponse) # <-- Use new response model
+# --- TODO: Secure this? (Optional - Require login?) ---
+async def get_stream_and_thumb_url( # Renamed function slightly for clarity
     video_url: str = Query(..., title="The full YouTube video URL"),
-    # current_user: auth.User = Depends(auth.get_current_active_user) # Add this later if needed
+    # current_user: auth.User = Depends(auth.get_current_active_user) # Add later if needed
 ):
-    # (Implementation remains the same for now)
-    print(f"Received request for stream URL for video: {video_url}")
-    stream_url = await youtubedl.get_audio_stream_url(video_url)
-    if not stream_url:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Could not retrieve audio stream URL for the video.")
-    print(f"Returning stream URL: {stream_url[:50]}...")
-    return stream_url
+    """
+    Gets the direct audio stream URL and a thumbnail URL for a given video URL.
+    """
+    print(f"Received request for stream/thumb URL for video: {video_url}")
+
+    # Call the updated utility function which returns a dict or None
+    stream_data = await youtubedl.get_audio_stream_url(video_url)
+
+    # Check if data was received AND if the essential stream_url exists
+    if not stream_data or not stream_data.get('stream_url'):
+        print(f"Failed to get stream URL for: {video_url}")
+        # Use 404 Not Found if stream couldn't be retrieved
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Could not retrieve audio stream URL for the video."
+        )
+
+    print(f"Returning stream URL: {stream_data.get('stream_url', 'N/A')[:50]}...")
+    print(f"Returning thumbnail URL: {stream_data.get('thumbnail_url', 'N/A')}")
+    print(f"Returning uploader: {stream_data.get('uploader', 'N/A')}")
+
+    # Return the dictionary - FastAPI will validate it against StreamResponse
+    return stream_data

@@ -107,9 +107,9 @@ async def get_playlist_videos(url: str) -> Optional[List[Dict[str, Any]]]: # Use
                     skipped_count += 1
                     continue
                 if title.startswith('[Private video]') or title.startswith('[Unavailable video]'):
-                     print(f"[yt-dlp] Skipping video with title: {title}")
-                     skipped_count += 1
-                     continue
+                    print(f"[yt-dlp] Skipping video with title: {title}")
+                    skipped_count += 1
+                    continue
                 # --- End Modification ---
 
                 # Extract desired info for valid entries
@@ -122,9 +122,9 @@ async def get_playlist_videos(url: str) -> Optional[List[Dict[str, Any]]]: # Use
             print(f"[yt-dlp] Success - Found {len(processed_entries)} usable videos (skipped {skipped_count}) in playlist: {url}")
             return processed_entries
         else:
-             print(f"[yt-dlp] Failed - No 'entries' found or result was invalid for playlist: {url}")
-             # Return empty list instead of None if entries array is missing/empty but no error occurred
-             return []
+            print(f"[yt-dlp] Failed - No 'entries' found or result was invalid for playlist: {url}")
+            # Return empty list instead of None if entries array is missing/empty but no error occurred
+            return []
 
     except DownloadError as e:
         print(f"[yt-dlp] DownloadError getting playlist videos for {url}: {e}")
@@ -134,23 +134,27 @@ async def get_playlist_videos(url: str) -> Optional[List[Dict[str, Any]]]: # Use
         return None # Indicate a definite error occurred during fetch
 
 
-async def get_audio_stream_url(video_url: str) -> str | None:
+async def get_audio_stream_url(video_url: str) -> Optional[Dict[str, Optional[str]]]:
     """
-    Fetches the direct URL for the best audio-only stream of a video.
+    Fetches the direct URL for the best audio-only stream and a thumbnail URL.
 
     Args:
         video_url: The URL of the YouTube video.
 
     Returns:
-        The direct audio stream URL string, or None if an error occurs.
+        A dictionary containing 'stream_url' and 'thumbnail_url' if successful,
+        otherwise None. Thumbnail URL might be None if not found.
+        Returns None overall if the audio stream URL cannot be found.
     """
-    print(f"[yt-dlp] Getting audio stream URL for: {video_url}")
+    print(f"[yt-dlp] Getting compatible audio stream and thumbnail for: {video_url}")
+    preferred_format = 'bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio/best'
+    
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
-        'format': 'bestaudio/best', # Select best audio, fallback to best video/audio mux
-        # 'get_url': True, # This changes behavior significantly, parse from info dict instead
+        'format': preferred_format,
         'skip_download': True,
+        # No need for forcejson if parsing dict; extract_flat might interfere with thumbnails
     }
 
     try:
@@ -160,21 +164,39 @@ async def get_audio_stream_url(video_url: str) -> str | None:
 
         result = await asyncio.to_thread(extract_sync)
 
-        # The direct URL is typically under the 'url' key for the extracted format info
-        stream_url = result.get('url') if result else None
+        stream_url = None
+        thumbnail_url = None
+
+        if result:
+            stream_url = result.get('url')
+            thumbnails = result.get('thumbnails')
+            uploader = result.get('uploader')
+            if uploader:
+                print(f"[yt-dlp] Found Uploader: {uploader}")
+            if isinstance(thumbnails, list) and len(thumbnails) > 0:
+                thumbnail_url = thumbnails[-1].get('url')
+                print(f"[yt-dlp] Found thumbnail URL: {thumbnail_url}")
+            else:
+                print("[yt-dlp] No thumbnails found in result.")
 
         if stream_url:
-            print(f"[yt-dlp] Success - Found stream URL for: {video_url}")
-            return stream_url
+            # --- Log the selected format's extension if available ---
+            selected_format_info = result.get('format_id') # Often has useful info
+            selected_ext = result.get('ext') # Extension of the selected format
+            print(f"[yt-dlp] Success - Found stream URL (Format ID: {selected_format_info}, Ext: {selected_ext}) for: {video_url}")
+            # --- End Log ---
+            return {
+                'stream_url': stream_url,
+                'thumbnail_url': thumbnail_url,
+                'uploader': uploader,
+            }
         else:
-            # Sometimes for specific formats, it might be nested deeper or in 'formats'
-            # This is a simplified case; more robust parsing might be needed.
-            print(f"[yt-dlp] Failed - Could not find stream URL for: {video_url}. Result dump: {result}")
+            print(f"[yt-dlp] Failed - Could not find stream URL for format '{preferred_format}' for: {video_url}. Result dump: {result}")
             return None
 
     except DownloadError as e:
-        print(f"[yt-dlp] DownloadError getting stream URL for {video_url}: {e}")
+        print(f"[yt-dlp] DownloadError getting stream/thumb for {video_url}: {e}")
         return None
     except Exception as e:
-        print(f"[yt-dlp] Unexpected error getting stream URL for {video_url}: {e}")
+        print(f"[yt-dlp] Unexpected error getting stream/thumb for {video_url}: {e}")
         return None

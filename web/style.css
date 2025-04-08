@@ -82,6 +82,46 @@ h2 {
   /* Prevent container scroll */
 }
 
+.browser-notice {
+  display: none; /* Start hidden - JS will show it by changing this */
+  position: fixed; /* Position relative to the viewport */
+  top: 0.6rem; /* Space from the top edge */
+  left: 50%; /* Start horizontal position at center */
+  transform: translateX(-50%); /* Pull back left by half its own width */
+  z-index: 1000; /* Ensure it's on top of other content */
+  font-size: 0.9rem;
+  color: var(--md-sys-color-on-surface-variant);
+  background-color: var(--md-sys-color-surface-variant);
+  padding: 0.75rem 2.5rem 0.75rem 1rem; /* Keep padding (space for close btn) */
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-corner-medium);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Add shadow for overlay effect */
+  text-align: left;
+}
+
+.browser-notice span {
+  /* Ensure text doesn't overlap button */
+  display: inline-block;
+  margin-right: 1rem;
+}
+
+.close-notice-btn {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--md-sys-color-on-surface-variant);
+  background-color: transparent;
+  border: none;
+}
+
+.close-notice-btn:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
 .left-pane,
 .right-pane {
   padding: 1rem;
@@ -774,6 +814,22 @@ h2 {
 
 
     --md-sys-color-shadow: #000000;
+  }
+
+  .browser-notice {
+    /* Ensure dark mode colors are applied */
+    color: var(--md-sys-color-on-surface-variant);
+    background-color: var(--md-sys-color-surface-variant);
+    border-color: var(--md-sys-color-outline);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.4); /* Darker shadow for dark mode */
+}
+
+  .close-notice-btn {
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .close-notice-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
   }
 
   .login-container {
