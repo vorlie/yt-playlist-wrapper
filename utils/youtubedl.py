@@ -3,6 +3,7 @@
 import asyncio
 import yt_dlp
 from yt_dlp.utils import DownloadError
+from typing import Optional, Dict, Any, List
 
 async def get_playlist_info(url: str) -> dict | None:
     """
@@ -58,9 +59,10 @@ async def get_playlist_info(url: str) -> dict | None:
         return None
 
 
-async def get_playlist_videos(url: str) -> list[dict] | None:
+async def get_playlist_videos(url: str) -> Optional[List[Dict[str, Any]]]: # Use specific types
     """
-    Fetches a list of video entries from a playlist URL.
+    Fetches a list of video entries from a playlist URL, skipping known
+    private/unavailable videos based on title patterns.
 
     Args:
         url: The URL of the YouTube playlist.
@@ -68,7 +70,8 @@ async def get_playlist_videos(url: str) -> list[dict] | None:
     Returns:
         A list of dictionaries, where each dict contains basic video info
         (e.g., {'id': ..., 'title': ..., 'webpage_url': ...}),
-        or None if an error occurs.
+        or None if a significant error occurs during fetch. Returns empty list
+        if playlist has no processable entries.
     """
     print(f"[yt-dlp] Getting video list for playlist: {url}")
     ydl_opts = {
@@ -81,33 +84,54 @@ async def get_playlist_videos(url: str) -> list[dict] | None:
 
     try:
         def extract_sync():
+            # Create instance inside the sync function for thread safety
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                # Extract info might raise DownloadError or other exceptions
                 return ydl.extract_info(url, download=False)
 
         result = await asyncio.to_thread(extract_sync)
 
         if result and 'entries' in result:
-            # Filter out potential None entries if any issues occurred during extraction
-            valid_entries = [
-                {
+            processed_entries = []
+            skipped_count = 0
+            for entry in result['entries']:
+                # Basic validation: entry exists and has an ID
+                if not entry or not entry.get('id'):
+                    skipped_count += 1
+                    continue
+
+                title = entry.get('title')
+
+                # --- MODIFIED: Skip known private/unavailable titles ---
+                if title is None: # Skip entries with no title
+                    skipped_count += 1
+                    continue
+                if title.startswith('[Private video]') or title.startswith('[Unavailable video]'):
+                     print(f"[yt-dlp] Skipping video with title: {title}")
+                     skipped_count += 1
+                     continue
+                # --- End Modification ---
+
+                # Extract desired info for valid entries
+                processed_entries.append({
                     'id': entry.get('id'),
-                    'title': entry.get('title', 'Unknown Title'),
-                    'webpage_url': entry.get('url'), # 'url' key holds the webpage_url when extract_flat=True
-                }
-                for entry in result['entries'] if entry and entry.get('id')
-            ]
-            print(f"[yt-dlp] Success - Found {len(valid_entries)} videos in playlist: {url}")
-            return valid_entries
+                    'title': title, # Already fetched and checked
+                    'webpage_url': entry.get('url') # 'url' key holds the webpage_url when extract_flat=True
+                })
+
+            print(f"[yt-dlp] Success - Found {len(processed_entries)} usable videos (skipped {skipped_count}) in playlist: {url}")
+            return processed_entries
         else:
-            print(f"[yt-dlp] Failed - No 'entries' found for playlist: {url}")
-            return None # Or return an empty list? None indicates failure.
+             print(f"[yt-dlp] Failed - No 'entries' found or result was invalid for playlist: {url}")
+             # Return empty list instead of None if entries array is missing/empty but no error occurred
+             return []
 
     except DownloadError as e:
         print(f"[yt-dlp] DownloadError getting playlist videos for {url}: {e}")
-        return None
+        return None # Indicate a definite error occurred during fetch
     except Exception as e:
         print(f"[yt-dlp] Unexpected error getting playlist videos for {url}: {e}")
-        return None
+        return None # Indicate a definite error occurred during fetch
 
 
 async def get_audio_stream_url(video_url: str) -> str | None:

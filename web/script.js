@@ -130,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- MODIFIED: Generic API Fetch function to handle Auth ---
   async function fetchAPI(url, options = {}, isAuthenticated = false) {
-    updateStatus("Communicating with backend...");
+    //updateStatus("Communicating with backend...");
     const headers = { ...(options.headers || {}) }; // Start with existing headers
 
     if (isAuthenticated) {
@@ -151,14 +151,27 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const response = await fetch(url, { ...options, headers }); // Include headers
 
-      // Handle 401 Unauthorized specifically
+      // Handle 401 Unauthorized specifically FIRST
       if (response.status === 401) {
-        console.error(
-          "API Error: 401 Unauthorized. Token might be invalid or expired."
-        );
-        updateStatus("Session expired or invalid. Please login again.", true);
+        console.error("API Error: 401 Unauthorized.");
+        let errorDetail = "Unauthorized"; // Default 401 detail
+        try {
+          const errorJson = await response.json();
+          errorDetail = errorJson.detail || errorDetail;
+        } catch (e) {
+          /* Ignore if response not json */
+        }
+
+        // --- NEW: Check for specific expiry message ---
+        if (errorDetail === "Session has expired") {
+          updateStatus("Session has expired. Please login again.", true);
+        } else {
+          updateStatus("Session invalid. Please login again.", true); // Generic invalid token message
+        }
+        // --- End New Check ---
+
         handleLogout(); // Clear token and log out UI
-        throw new Error("Unauthorized (401)");
+        throw new Error(errorDetail); // Throw specific or generic detail
       }
 
       if (!response.ok) {
@@ -170,7 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(errorDetail);
       }
 
-      updateStatus("Done.", false, 1000);
+      //updateStatus("Done.", false, 1000);
       if (response.status === 204) {
         return null;
       }
@@ -195,65 +208,67 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("Attempting to fetch current user info...");
     updateStatus("Loading user data...");
     try {
-        // Call the new '/api/users/me' endpoint, requiring authentication
-        const userData = await fetchAPI('/api/users/me', {}, true); // true = requires auth
+      // Call the new '/api/users/me' endpoint, requiring authentication
+      const userData = await fetchAPI("/api/users/me", {}, true); // true = requires auth
 
-        if (userData && userData.username) {
-            console.log("User data received:", userData);
-            // Update UI for logged-in state
-            loginSection.style.display = 'none';
-            appContainer.style.display = 'flex'; // Show main app
-            userInfoUsername.textContent = userData.username; // Display username
-            statusMessage.style.display = 'flex'; // Ensure status bar visible
-            updateStatus(`Logged in as ${userData.username}`, false);
-            loadInitialPlaylists(); // Load playlists now we know user is valid
-        } else {
-            // This case shouldn't be hit if API returns User model, but good practice
-            console.error("Received invalid user data from /api/users/me");
-            throw new Error("Invalid user data received.");
-        }
+      if (userData && userData.username) {
+        console.log("User data received:", userData);
+        // Update UI for logged-in state
+        loginSection.style.display = "none";
+        appContainer.style.display = "flex"; // Show main app
+        userInfoUsername.textContent = userData.username; // Display username
+        statusMessage.style.display = "flex"; // Ensure status bar visible
+        updateStatus(`Logged in as ${userData.username}`, false);
+        loadInitialPlaylists(); // Load playlists now we know user is valid
+      } else {
+        // This case shouldn't be hit if API returns User model, but good practice
+        console.error("Received invalid user data from /api/users/me");
+        throw new Error("Invalid user data received.");
+      }
     } catch (error) {
-        // Error likely means token was invalid (401 caught by fetchAPI) or network issue
-        console.error("Failed to fetch current user:", error);
-        // fetchAPI should have already called handleLogout on 401
-        // If it was another error, ensure logged out state
-        if (getToken()) { // Check if token still exists somehow
-             handleLogout(); // Ensure logout if fetch failed
-        } else {
-             // Ensure login screen is shown if already logged out
-             loginSection.style.display = 'block';
-             appContainer.style.display = 'none';
-             statusMessage.textContent = "Please Login";
-             statusMessage.style.display = 'flex';
-        }
+      // Error likely means token was invalid (401 caught by fetchAPI) or network issue
+      console.error("Failed to fetch current user:", error);
+      // fetchAPI should have already called handleLogout on 401
+      // If it was another error, ensure logged out state
+      if (getToken()) {
+        // Check if token still exists somehow
+        handleLogout(); // Ensure logout if fetch failed
+      } else {
+        // Ensure login screen is shown if already logged out
+        loginSection.style.display = "block";
+        appContainer.style.display = "none";
+        statusMessage.textContent = "Please Login";
+        statusMessage.style.display = "flex";
+      }
     }
-}
+  }
 
-function updateUIAfterLoginStateChange() {
-  const token = getToken();
-  if (token) {
+  function updateUIAfterLoginStateChange() {
+    const token = getToken();
+    if (token) {
       // Token exists, try to fetch user data to verify it and update UI
       fetchAndDisplayCurrentUser();
-  } else {
+    } else {
       // No Token - Show Login Screen
-      loginSection.style.display = 'block'; // Or 'flex' based on its CSS
-      appContainer.style.display = 'none'; // Hide main app
+      loginSection.style.display = "block"; // Or 'flex' based on its CSS
+      appContainer.style.display = "none"; // Hide main app
       statusMessage.textContent = "Please Login";
-      statusMessage.style.display = 'flex'; // Show login message
+      statusMessage.style.display = "flex"; // Show login message
       // Clear any potentially sensitive data shown in the app UI
-      playlistList.innerHTML = '<li class="list-item-placeholder">Login to view playlists...</li>';
-      videoList.innerHTML = '';
-      nowPlayingTitle.textContent = 'Nothing';
+      playlistList.innerHTML =
+        '<li class="list-item-placeholder">Login to view playlists...</li>';
+      videoList.innerHTML = "";
+      nowPlayingTitle.textContent = "Nothing";
       // Reset other states if needed
       currentSelectedPlaylistId = null;
       currentSelectedVideoUrl = null;
       currentVideoTitle = null;
       currentVideoListItem = null;
-      if(audioElement) audioElement.src = "";
+      if (audioElement) audioElement.src = "";
       updatePlaylistActionButtons();
       updatePlaybackButtons(false);
+    }
   }
-}
 
   function updateLoopButton() {
     if (!loopBtn) return; // Exit if button doesn't exist

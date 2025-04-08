@@ -7,6 +7,7 @@ from typing import Optional, Any, Dict
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer # Handles extracting token from header
 from jose import JWTError, jwt # For JWT encoding/decoding
+from jose.exceptions import ExpiredSignatureError # For handling expired tokens
 from passlib.context import CryptContext # For password hashing
 from pydantic import BaseModel
 from dotenv import load_dotenv # For loading environment variables
@@ -72,33 +73,45 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any
     Decodes the JWT token, validates it, and fetches the user from the database.
     Used as a base dependency.
 
-    Raises HTTPException 401 if token is invalid or user not found.
+    Raises HTTPException 401 if token is invalid, expired, or user not found.
     """
+    # Generic exception for most credential issues
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Could not validate credentials", # Generic detail for invalid signature/format
         headers={"WWW-Authenticate": "Bearer"},
     )
+    # Specific exception for expired tokens
+    expired_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Session has expired", # Specific detail for expiry
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: Optional[str] = payload.get("sub") # 'sub' usually holds the username
+        username: Optional[str] = payload.get("sub")
         if username is None:
             print("Token missing username (sub claim)")
             raise credentials_exception
         token_data = TokenData(username=username)
+    # --- Catch specific expiry error FIRST ---
+    except ExpiredSignatureError:
+        print("JWTError decoding token: Signature has expired.")
+        raise expired_exception # Raise specific exception
+    # --- Catch other JWT errors ---
     except JWTError as e:
         print(f"JWTError decoding token: {e}")
-        raise credentials_exception from e
-    except Exception as e: # Catch other potential errors during decoding
+        raise credentials_exception from e # Raise generic exception
+    except Exception as e:
         print(f"Unexpected error decoding token: {e}")
         raise credentials_exception from e
 
-    # Fetch user from database using the username from the token
     user = await database.get_user_by_username(username=token_data.username)
     if user is None:
         print(f"User '{token_data.username}' from token not found in DB")
-        raise credentials_exception
-    # Note: User is returned as a dict from the database function
+        raise credentials_exception # User doesn't exist -> generic credential error
+
     return user
 
 
