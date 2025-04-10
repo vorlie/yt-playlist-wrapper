@@ -512,18 +512,40 @@ document.addEventListener("DOMContentLoaded", () => {
   // Function to handle adding a playlist
   async function handleAddPlaylist() {
     const url = playlistUrlInput.value.trim();
+    let isValid = false; // Flag to track validity
 
-    // Check if URL is empty or doesn't start with the specific prefix
-    const requiredPrefix = "https://www.youtube.com/playlist?list="; // Define the required prefix
-    if (!url || !url.startsWith(requiredPrefix)) {
-      // Update status message to reflect the specific requirement
-      updateStatus(
-        `Please enter a valid URL starting with '${requiredPrefix}'`,
-        true
-      );
-      return; // Stop execution if validation fails
+    if (url) {
+        try {
+            const parsedUrl = new URL(url); // Attempt to parse the URL
+
+            // 1. Check Protocol
+            const isHttpOrHttps = parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+
+            // 2. Check Hostname (ends with youtube.com or is youtube.com)
+            const isYouTubeDomain = parsedUrl.hostname === 'youtube.com' || parsedUrl.hostname.endsWith('.youtube.com');
+
+            // 3. Check for 'list' query parameter with a non-empty value
+            const listParam = parsedUrl.searchParams.get('list');
+            const hasValidListParam = listParam !== null && listParam.trim() !== '';
+
+            // Combine checks
+            isValid = isHttpOrHttps && isYouTubeDomain && hasValidListParam;
+
+        } catch (e) {
+            // If new URL(url) throws an error, it's not a valid URL format
+            console.error("URL Parsing Error:", e);
+            isValid = false;
+        }
+    } // If url is empty, isValid remains false
+
+    // Check the validation flag
+    if (!isValid) {
+        updateStatus(
+            "Please enter a valid YouTube playlist URL (e.g., https://www.youtube.com/playlist?list=..., https://youtube.com/playlist?list=...)",
+            true
+        );
+        return; // Stop execution if validation fails
     }
-    // --- End Modification ---
 
     addPlaylistBtn.disabled = true;
     updateStatus(`Adding playlist: ${url}...`); 
