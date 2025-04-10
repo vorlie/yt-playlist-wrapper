@@ -106,7 +106,8 @@ async def get_playlist_videos(url: str) -> Optional[List[Dict[str, Any]]]: # Use
                 if title is None: # Skip entries with no title
                     skipped_count += 1
                     continue
-                if title.startswith('[Private video]') or title.startswith('[Unavailable video]'):
+                if title.startswith('[Private video]') or title.startswith('[Unavailable video]') or title.startswith('[Deleted video]'):
+                    # Skip entries with these titles
                     print(f"[yt-dlp] Skipping video with title: {title}")
                     skipped_count += 1
                     continue
