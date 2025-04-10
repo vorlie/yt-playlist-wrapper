@@ -515,28 +515,30 @@ document.addEventListener("DOMContentLoaded", () => {
     let isValid = false; // Flag to track validity
 
     if (url) {
-        try {
-            const parsedUrl = new URL(url); // Attempt to parse the URL
+      try {
+          const parsedUrl = new URL(url);
 
-            // 1. Check Protocol
-            const isHttpOrHttps = parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+          // 1. Check Protocol
+          const isHttpOrHttps = parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
 
-            // 2. Check Hostname (ends with youtube.com or is youtube.com)
-            const isYouTubeDomain = parsedUrl.hostname === 'youtube.com' || parsedUrl.hostname.endsWith('.youtube.com');
+          // 2. Check Hostname
+          const isYouTubeDomain = parsedUrl.hostname === 'youtube.com' || parsedUrl.hostname.endsWith('.youtube.com');
 
-            // 3. Check for 'list' query parameter with a non-empty value
-            const listParam = parsedUrl.searchParams.get('list');
-            const hasValidListParam = listParam !== null && listParam.trim() !== '';
+          // 3. Check Pathname --- NEW ---
+          const isCorrectPath = parsedUrl.pathname === '/playlist';
 
-            // Combine checks
-            isValid = isHttpOrHttps && isYouTubeDomain && hasValidListParam;
+          // 4. Check for 'list' query parameter
+          const listParam = parsedUrl.searchParams.get('list');
+          const hasValidListParam = listParam !== null && listParam.trim() !== '';
 
-        } catch (e) {
-            // If new URL(url) throws an error, it's not a valid URL format
-            console.error("URL Parsing Error:", e);
-            isValid = false;
-        }
-    } // If url is empty, isValid remains false
+          // Combine ALL checks
+          isValid = isHttpOrHttps && isYouTubeDomain && isCorrectPath && hasValidListParam; // <-- Added isCorrectPath
+
+      } catch (e) {
+          console.error("URL Parsing Error:", e);
+          isValid = false;
+      }
+  }
 
     // Check the validation flag
     if (!isValid) {
