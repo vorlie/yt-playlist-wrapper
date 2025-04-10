@@ -532,7 +532,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const hasValidListParam = listParam !== null && listParam.trim() !== '';
 
           // Combine ALL checks
-          isValid = isHttpOrHttps && isYouTubeDomain && isCorrectPath && hasValidListParam; // <-- Added isCorrectPath
+          isValid = isHttpOrHttps && isYouTubeDomain && isCorrectPath && hasValidListParam;
 
       } catch (e) {
           console.error("URL Parsing Error:", e);
