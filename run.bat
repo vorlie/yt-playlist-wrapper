@@ -23,7 +23,8 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-REM To use a specific port, add the --port option to the uvicorn command below, e.g., uvicorn main_web:app --reload --port 8080
+REM To use a specific port, add the --port option to the uvicorn command below, 
+REM e.g., uvicorn main_web:app --reload --port 8080
 REM Run the app
 uvicorn main_web:app --reload
 if %errorlevel% neq 0 (

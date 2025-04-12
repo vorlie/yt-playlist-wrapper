@@ -23,7 +23,8 @@ if [ $? -ne 0 ]; then
 fi
 
 # Run the app
-# To use a specific port, add the --port option to the uvicorn command below, e.g., uvicorn main_web:app --reload --port 8080
+# To use a specific port, add the --port option to the uvicorn command below, 
+# e.g., uvicorn main_web:app --reload --port 8080
 uvicorn main_web:app --reload
 if [ $? -ne 0 ]; then
     echo "Failed to start the application. Please check the error messages above."
