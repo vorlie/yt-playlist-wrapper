@@ -3,8 +3,8 @@
 1. Make a virtual enviroment: `python3 -m venv .venv`
 2. Activate the virtual environment: `./.venv/Source/activate` or `source .venv/bin/activate`
 3. Install requirements: `pip install -r requirements.txt`
-4. Run the app: `uvicorn main_web:app --reload`
-5. Open the url: `http://127.0.0.1:8000`
+4. Run the app: Use the provided `run.sh` (for Linux/Mac) or `run.bat` (for Windows) scripts to set up and start the application. Alternatively, you can run the app manually using `uvicorn main_web:app --reload` (To use a specific port, add `--port <port_number>` to the command, e.g., `uvicorn main_web:app --reload --port 8080`).
+5. Open the url: `http://127.0.0.1:PORT_NUMBER`
 
 # Requirements
 ```
