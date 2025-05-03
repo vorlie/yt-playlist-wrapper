@@ -1,19 +1,20 @@
 # utils/auth.py
 
 import os
-from datetime import datetime, timedelta, timezone # Use timezone-aware datetime
-from typing import Optional, Any, Dict
+from datetime import datetime, timedelta, timezone  # Use timezone-aware datetime
+from typing import Any, Dict, Optional  # noqa: UP035
 
+from dotenv import load_dotenv  # For loading environment variables
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer # Handles extracting token from header
-from jose import JWTError, jwt # For JWT encoding/decoding
-from jose.exceptions import ExpiredSignatureError # For handling expired tokens
-from passlib.context import CryptContext # For password hashing
+from fastapi.security import OAuth2PasswordBearer  # Handles extracting token from header
+from jose import JWTError, jwt  # For JWT encoding/decoding
+from jose.exceptions import ExpiredSignatureError  # For handling expired tokens
+from passlib.context import CryptContext  # For password hashing
 from pydantic import BaseModel
-from dotenv import load_dotenv # For loading environment variables
 
 # Import database functions and user model placeholder
 from . import database
+
 
 # Let's redefine it here for clarity within auth context
 class User(BaseModel):
@@ -45,6 +46,7 @@ def get_password_hash(password: str) -> str:
 
 class TokenData(BaseModel):
     """Pydantic model for data expected inside the JWT payload."""
+
     username: Optional[str] = None
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -59,8 +61,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     if "sub" not in to_encode:
         raise ValueError("Missing 'sub' key in token data for JWT subject")
 
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 # --- FastAPI Dependency for Authentication ---
 
@@ -68,13 +69,13 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 # It extracts the token from the 'Authorization: Bearer <token>' header
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token") # Relative URL to the token endpoint
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:  # noqa: UP006
     """
     Decodes the JWT token, validates it, and fetches the user from the database.
     Used as a base dependency.
 
     Raises HTTPException 401 if token is invalid, expired, or user not found.
-    """
+    """  # noqa: D205, D212
     # Generic exception for most credential issues
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -98,7 +99,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any
     # --- Catch specific expiry error FIRST ---
     except ExpiredSignatureError:
         print("JWTError decoding token: Signature has expired.")
-        raise expired_exception # Raise specific exception
+        raise expired_exception # Raise specific exception  # noqa: B904
     # --- Catch other JWT errors ---
     except JWTError as e:
         print(f"JWTError decoding token: {e}")
@@ -115,14 +116,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any
     return user
 
 
-async def get_current_active_user(current_user: Dict[str, Any] = Depends(get_current_user)) -> User:
+async def get_current_active_user(current_user: Dict[str, Any] = Depends(get_current_user)) -> User:  # noqa: B008, UP006
     """
     Wrapper dependency that checks if the user fetched by get_current_user is active.
     Use this dependency in your path operations for protected routes.
 
     Raises HTTPException 400 if user is inactive.
     Returns a User Pydantic model instance.
-    """
+    """  # noqa: D205, D212
     if not current_user.get("is_active"): # Check the 'is_active' field from the DB result
         print(f"User '{current_user.get('username')}' is inactive.")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")

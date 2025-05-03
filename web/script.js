@@ -11,7 +11,7 @@ const ICONS = {
 const LOOP_ICONS = {
   none: `<svg xmlns="https://www.youtube.com/watch?v=" height="24px" viewBox="0 0 24 24" width="24px" fill="currentColor"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>`, // Loop Off
   all: `<svg xmlns="https://www.youtube.com/watch?v=" height="24px" viewBox="0 0 24 24" width="24px" fill="currentColor"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>`, // Loop All
-  one: `<svg xmlns="https://www.youtube.com/watch?v=" height="24px" viewBox="0 0 24 24" width="24px" fill="currentColor"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8zm-1 11h-1v-4h1v4zm4-3h-1v-2h1v2zm-2-3h-1V8h1v2z"/ transform="scale(1.1) translate(-1, -1.2)"><text x="10.5" y="17" font-size="10" font-weight='bold' fill='currentColor' text-anchor="middle">1</text></g></svg>`, // Loop One (with a '1') - requires tweaking SVG
+  one: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M460-360v-180h-60v-60h120v240h-60ZM280-80 120-240l160-160 56 58-62 62h406v-160h80v240H274l62 62-56 58Zm-80-440v-240h486l-62-62 56-58 160 160-160 160-56-58 62-62H280v160h-80Z"/></svg>`, // Loop One (with a '1') - requires tweaking SVG
 };
 
 // Wait for the DOM to be fully loaded
@@ -82,6 +82,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentVideoUploader = null;
   let playbackMode = "none"; // Possible values: 'none', 'loop-one', 'loop-all'
   let currentUserToken = null;
+
+  function sendPresenceData(songData) {
+    window.postMessage({ type: "SONG_DATA", song: songData }, "*");
+  }
 
   // --- Token Handling Functions ---
   function storeToken(token) {
@@ -694,6 +698,12 @@ document.addEventListener("DOMContentLoaded", () => {
             currentVideoListItem.classList.remove("selected");
             currentVideoListItem = null;
           }
+        });
+        sendPresenceData({
+          title: videoTitle,
+          url: videoWebpageUrl,
+          thumbnail: streamData.thumbnail_url,
+          uploader: streamData.uploader,
         });
       } else {
         // Handle cases where stream_url wasn't found or response wasn't expected object

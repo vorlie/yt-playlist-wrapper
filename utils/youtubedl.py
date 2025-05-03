@@ -15,7 +15,9 @@ async def get_playlist_info(url: str) -> dict | None:
     Returns:
         A dictionary containing playlist info (e.g., {'title': ..., 'id': ...})
         or None if an error occurs or it's not a valid playlist.
+
     """
+
     print(f"[yt-dlp] Getting playlist info for: {url}")
     ydl_opts = {
         'quiet': True,

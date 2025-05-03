@@ -70,7 +70,7 @@ LOGGING_CONFIG = {
             "handlers": ["console", "file"],
             "level": "INFO", # Or WARNING to reduce noise
             "propagate": False,
-        }
+        },
     },
 }
 
@@ -127,7 +127,7 @@ class StreamResponse(BaseModel):
 app = FastAPI(
     title="Iotas YouTube Player Backend",
     description="API for fetching YouTube data and managing playlists.",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
@@ -144,11 +144,11 @@ async def startup_event():
     logger.info("Application starting up...")
     try:
         await database.init_db()
-        test_user = await database.get_user_by_username('testuser')
+        test_user = await database.get_user_by_username("testuser")
         if not test_user:
             try:
-                hashed_pw = auth.get_password_hash('testpassword')
-                await database.create_user('testuser', hashed_pw)
+                hashed_pw = auth.get_password_hash("testpassword")
+                await database.create_user("testuser", hashed_pw)
                 logger.info("--- Created default user 'testuser' with password 'testpassword' ---")
             except Exception as e_user:
                 # Log the error with traceback
