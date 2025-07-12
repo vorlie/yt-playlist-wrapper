@@ -8,7 +8,6 @@ import os
 import aiosqlite
 from datetime import timedelta 
 
-
 from fastapi import FastAPI, HTTPException, Body, Query, Path, Request, Depends, status 
 from fastapi.security import OAuth2PasswordRequestForm 
 from fastapi.responses import HTMLResponse
@@ -17,7 +16,6 @@ from typing import List, Optional, Dict, Any
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
-
 
 from utils import database
 from utils import youtubedl
@@ -76,16 +74,11 @@ LOGGING_CONFIG = {
     },
 }
 
-
 logging.config.dictConfig(LOGGING_CONFIG)
-
-
 logger = logging.getLogger(__name__) 
-
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(BASE_DIR, "web")
-
 
 class PlaylistCreate(BaseModel):
     url: str
@@ -99,7 +92,6 @@ class VideoResponse(BaseModel):
     id: Optional[str] = None
     title: str
     webpage_url: Optional[str] = None
-
 
 class UserCreate(BaseModel): 
     username: str
@@ -121,9 +113,6 @@ class StreamResponse(BaseModel):
     stream_url: Optional[str] = None
     thumbnail_url: Optional[str] = None
     uploader: Optional[str] = None
-
-
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -147,14 +136,8 @@ async def lifespan(app: FastAPI):
         
         
         raise RuntimeError("Database initialization failed") from e
-
     yield  
-
-    
     logger.info("Application shutting down...")
-    
-    
-
 
 app = FastAPI(
     title="Iotas YouTube Player Backend",
@@ -165,11 +148,6 @@ app = FastAPI(
 
 app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
 templates = Jinja2Templates(directory=WEB_DIR)
-
-
-
-
-
 
 """
 @app.on_event("startup")
@@ -195,15 +173,11 @@ async def startup_event():
         
 """
 
-
-
 @app.get("/", response_class=HTMLResponse)
 async def read_root_html(request: Request):
     
     logger.info("Serving index.html")
     return templates.TemplateResponse("index.html", {"request": request})
-
-
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -254,9 +228,6 @@ async def read_users_me(current_user: auth.User = Depends(auth.get_current_activ
     logger.info(f"Request for /api/users/me received for user: {current_user.username}")
     return current_user
 
-
-
-
 @app.get("/api/playlists", response_model=List[PlaylistResponse])
 async def get_user_playlists(current_user: auth.User = Depends(auth.get_current_active_user)):
     
@@ -296,8 +267,6 @@ async def delete_user_playlist(playlist_id: int = Path(..., ge=1), current_user:
     logger.info(f"Successfully deleted playlist ID {playlist_id} for user {current_user.id}.")
     return None
 
-
-
 @app.get("/api/playlists/{playlist_id}/videos", response_model=List[VideoResponse])
 async def get_videos_in_playlist(playlist_id: int = Path(..., ge=1), current_user: auth.User = Depends(auth.get_current_active_user)):
     
@@ -323,7 +292,6 @@ async def get_videos_in_playlist(playlist_id: int = Path(..., ge=1), current_use
 
     logger.info(f"Returning {len(videos)} videos for playlist ID {playlist_id}")
     return videos
-
 
 @app.get("/api/stream_url", response_model=StreamResponse)
 async def get_stream_and_thumb_url(video_url: str = Query(...), current_user: auth.User = Depends(auth.get_current_active_user)):

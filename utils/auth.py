@@ -1,5 +1,4 @@
 
-
 import os
 from datetime import datetime, timedelta, timezone  
 from typing import Any, Dict, Optional  
@@ -12,7 +11,6 @@ from jose.exceptions import ExpiredSignatureError
 from passlib.context import CryptContext  
 from pydantic import BaseModel
 
-
 from . import database
 
 class User(BaseModel):
@@ -20,15 +18,11 @@ class User(BaseModel):
     username: str
     is_active: Optional[bool] = True
 
-
 load_dotenv()
-
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")) 
-
-
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -39,8 +33,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     """Hashes a plain password."""
     return pwd_context.hash(password)
-
-
 
 class TokenData(BaseModel):
     """Pydantic model for data expected inside the JWT payload."""
@@ -60,10 +52,6 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         raise ValueError("Missing 'sub' key in token data for JWT subject")
 
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-
-
-
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token") 
 
@@ -86,7 +74,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any
         detail="Session has expired", 
         headers={"WWW-Authenticate": "Bearer"},
     )
-
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: Optional[str] = payload.get("sub")
@@ -105,14 +92,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any
     except Exception as e:
         print(f"Unexpected error decoding token: {e}")
         raise credentials_exception from e
-
     user = await database.get_user_by_username(username=token_data.username)
     if user is None:
         print(f"User '{token_data.username}' from token not found in DB")
         raise credentials_exception 
-
     return user
-
 
 async def get_current_active_user(current_user: Dict[str, Any] = Depends(get_current_user)) -> User:  
     """

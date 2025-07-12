@@ -1,10 +1,8 @@
 
-
 import os
 from typing import Any, Dict, Optional  
 
 import aiosqlite
-
 
 DATABASE_DIR = os.path.dirname(__file__)  
 DATABASE_PATH = os.path.join(DATABASE_DIR, "..", "app_data.db")  
@@ -12,8 +10,6 @@ DATABASE_PATH = os.path.join(DATABASE_DIR, "..", "app_data.db")
 async def init_db():
     """Initializes the database and creates tables if they don't exist."""
     async with aiosqlite.connect(DATABASE_PATH) as db:
-
-        
         await db.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,8 +20,6 @@ async def init_db():
             )
         """)
         await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users (username)")
-
-        
         await db.execute("""
             CREATE TABLE IF NOT EXISTS playlists (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,8 +32,6 @@ async def init_db():
         """)
         await db.execute("CREATE INDEX IF NOT EXISTS idx_playlists_user_id ON playlists (user_id)")
         await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_playlists_user_url ON playlists (user_id, url)")
-
-        
         await db.execute("""
             CREATE TABLE IF NOT EXISTS videos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,7 +44,6 @@ async def init_db():
             )
         """)
         await db.execute("CREATE INDEX IF NOT EXISTS idx_videos_playlist_id ON videos (playlist_id)")
-
         await db.commit()
     print(f"Database initialized/checked at {DATABASE_PATH}")
 
@@ -91,8 +82,6 @@ async def create_user(username: str, hashed_password: str) -> Optional[int]:
     except Exception as e:
         print(f"Error creating user '{username}': {e}")
         return None
-
-
 
 async def add_playlist(title: str, url: str, user_id: int) -> Optional[int]:
     """Adds a new playlist for a specific user.

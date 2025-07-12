@@ -8,14 +8,11 @@ from typing import Optional, Dict, Any, List
 async def get_playlist_info(url: str) -> dict | None:
     """
     Fetches basic information about a playlist (like title).
-
     Args:
         url: The URL of the YouTube playlist.
-
     Returns:
         A dictionary containing playlist info (e.g., {'title': ..., 'id': ...})
         or None if an error occurs or it's not a valid playlist.
-
     """
 
     print(f"[yt-dlp] Getting playlist info for: {url}")
@@ -34,9 +31,7 @@ async def get_playlist_info(url: str) -> dict | None:
             
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 return ydl.extract_info(url, download=False)
-
         result = await asyncio.to_thread(extract_sync)
-
         
         if result and result.get('_type') == 'playlist':
             playlist_info = {
@@ -52,23 +47,18 @@ async def get_playlist_info(url: str) -> dict | None:
             return None
 
     except DownloadError as e:
-        
         print(f"[yt-dlp] DownloadError getting playlist info for {url}: {e}")
         return None
     except Exception as e:
-        
         print(f"[yt-dlp] Unexpected error getting playlist info for {url}: {e}")
         return None
-
 
 async def get_playlist_videos(url: str) -> Optional[List[Dict[str, Any]]]: 
     """
     Fetches a list of video entries from a playlist URL, skipping known
     private/unavailable videos based on title patterns.
-
     Args:
         url: The URL of the YouTube playlist.
-
     Returns:
         A list of dictionaries, where each dict contains basic video info
         (e.g., {'id': ..., 'title': ..., 'webpage_url': ...}),
@@ -90,9 +80,7 @@ async def get_playlist_videos(url: str) -> Optional[List[Dict[str, Any]]]:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 
                 return ydl.extract_info(url, download=False)
-
         result = await asyncio.to_thread(extract_sync)
-
         if result and 'entries' in result:
             processed_entries = []
             skipped_count = 0
@@ -101,9 +89,7 @@ async def get_playlist_videos(url: str) -> Optional[List[Dict[str, Any]]]:
                 if not entry or not entry.get('id'):
                     skipped_count += 1
                     continue
-
                 title = entry.get('title')
-
                 
                 if title is None: 
                     skipped_count += 1
@@ -113,21 +99,18 @@ async def get_playlist_videos(url: str) -> Optional[List[Dict[str, Any]]]:
                     print(f"[yt-dlp] Skipping video with title: {title}")
                     skipped_count += 1
                     continue
-
                 
                 processed_entries.append({
                     'id': entry.get('id'),
                     'title': title, 
                     'webpage_url': entry.get('url') 
                 })
-
             print(f"[yt-dlp] Success - Found {len(processed_entries)} usable videos (skipped {skipped_count}) in playlist: {url}")
             return processed_entries
         else:
             print(f"[yt-dlp] Failed - No 'entries' found or result was invalid for playlist: {url}")
             
             return []
-
     except DownloadError as e:
         print(f"[yt-dlp] DownloadError getting playlist videos for {url}: {e}")
         return None 
@@ -135,14 +118,11 @@ async def get_playlist_videos(url: str) -> Optional[List[Dict[str, Any]]]:
         print(f"[yt-dlp] Unexpected error getting playlist videos for {url}: {e}")
         return None 
 
-
 async def get_audio_stream_url(video_url: str) -> Optional[Dict[str, Optional[str]]]:
     """
     Fetches the direct URL for the best audio-only stream and a thumbnail URL.
-
     Args:
         video_url: The URL of the YouTube video.
-
     Returns:
         A dictionary containing 'stream_url' and 'thumbnail_url' if successful,
         otherwise None. Thumbnail URL might be None if not found.
@@ -157,17 +137,13 @@ async def get_audio_stream_url(video_url: str) -> Optional[Dict[str, Optional[st
         'format': preferred_format,
         'skip_download': True,
     }
-
     try:
         def extract_sync():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 return ydl.extract_info(video_url, download=False)
-
         result = await asyncio.to_thread(extract_sync)
-
         stream_url = None
         thumbnail_url = None
-
         if result:
             stream_url = result.get('url')
             thumbnails = result.get('thumbnails')
@@ -179,7 +155,6 @@ async def get_audio_stream_url(video_url: str) -> Optional[Dict[str, Optional[st
                 print(f"[yt-dlp] Found thumbnail URL: {thumbnail_url}")
             else:
                 print("[yt-dlp] No thumbnails found in result.")
-
         if stream_url:
             
             selected_format_info = result.get('format_id') 
@@ -193,7 +168,6 @@ async def get_audio_stream_url(video_url: str) -> Optional[Dict[str, Optional[st
         else:
             print(f"[yt-dlp] Failed - Could not find stream URL for format '{preferred_format}' for: {video_url}. Result dump: {result}")
             return None
-
     except DownloadError as e:
         print(f"[yt-dlp] DownloadError getting stream/thumb for {video_url}: {e}")
         return None

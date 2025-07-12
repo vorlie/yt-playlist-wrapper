@@ -8,6 +8,16 @@
      4. Run the app: `uvicorn main_web:app --reload` (To use a specific port, add `--port <port_number>` to the command, e.g., `uvicorn main_web:app --reload --port 8080`).
 2. Open the url: `http://127.0.0.1:PORT_NUMBER`
 
+# Environment Variables
+- Create a `.env` file in the project root with the following variables:
+- SECRET_KEY - Secret key for JWT authentication. 
+  - Use `openssl rand -hex 32` to generate a random secret key.
+- ACCESS_TOKEN_EXPIRE_MINUTES - Number of minutes for which the access token is valid.
+```
+SECRET_KEY=""
+ACCESS_TOKEN_EXPIRE_MINUTES="180"
+```
+
 # Requirements
 ```
 aiosqlite==0.21.0
