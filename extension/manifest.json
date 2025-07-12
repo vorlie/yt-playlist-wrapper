@@ -1,0 +1,25 @@
+{
+    "manifest_version": 3,
+    "name": "Music Presence Bridge",
+    "version": "1.0",
+    "description": "Bridge song data from music.vorlie.pl to local Discord presence app.",
+    "permissions": ["scripting"],
+    "host_permissions": [
+        "https://music.vorlie.pl/*",
+        "http://127.0.0.1:4582/*"
+    ],
+    "background": {
+        "scripts": ["background.js"]
+    },
+    "content_scripts": [
+        {
+            "matches": ["https://music.vorlie.pl/*"],
+            "js": ["content.js"]
+        }
+    ],
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "fake@mail.com"
+        }
+    }
+}

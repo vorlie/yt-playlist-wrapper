@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Iotas YT Player</title>
+    <!-- icon-->
+    <link rel="icon" type="image/png" href="/static/icon.png" />
+    <link rel="preconnect" href="https://www.youtube.com/watch?v=" />
+    <link
+      rel="preconnect"
+      href="https://www.youtube.com/watch?v="
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css" />
+    <!-- OG META -->
+    <meta property="og:title" content="Iotas YT Player" />
+    <meta
+      property="og:description"
+      content="A simple YouTube playlist player."
+    />
+    <meta property="og:image" content="/static/icon.png" />
+    <meta property="og:url" content="" />
+  </head>
+  <body>
+    <div
+      id="browser-notice-element"
+      class="browser-notice"
+      style="display: none"
+    >
+      <span
+        >For the best experience, please use the latest standard version of
+        Chrome, Edge, or Firefox.</span
+      >
+      <button
+        id="close-browser-notice-btn"
+        class="btn btn-icon close-notice-btn"
+        aria-label="Dismiss Notice"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          height="24px"
+          viewBox="0 0 24 24"
+          width="24px"
+          fill="currentColor"
+        >
+          <path d="M0 0h24v24H0V0z" fill="none" />
+          <path
+            d="M14.59 8L12 10.59 9.41 8 8 9.41 10.59 12 8 14.59 9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8zM12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+          />
+        </svg>
+      </button>
+    </div>
+    <section id="login-section" class="login-container">
+      <div id="login-form-container">
+        <h2>Login</h2>
+        <div class="form-group">
+          <label for="login-username">Username:</label>
+          <input type="text" id="login-username" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password:</label>
+          <input type="password" id="login-password" required />
+        </div>
+        <button id="login-btn" class="btn btn-filled">Login</button>
+        <p id="login-error" class="error-message"></p>
+        <p class="toggle-form-link">
+          Don't have an account?
+          <a href="#" id="show-register-link">Register here</a>
+        </p>
+      </div>
+
+      <div id="register-form-container" style="display: none">
+        <h2>Register</h2>
+        <div class="form-group">
+          <label for="register-username">Choose Username:</label>
+          <input type="text" id="register-username" required />
+        </div>
+        <div class="form-group">
+          <label for="register-password">Choose Password:</label>
+          <input type="password" id="register-password" required />
+        </div>
+        <div class="form-group">
+          <label for="register-confirm-password">Confirm Password:</label>
+          <input type="password" id="register-confirm-password" required />
+        </div>
+        <button id="register-btn" class="btn btn-outline">Register</button>
+        <p id="register-message" class="message"></p>
+        <p class="toggle-form-link">
+          Already have an account?
+          <a href="#" id="show-login-link">Login here</a>
+        </p>
+      </div>
+    </section>
+    <div class="background-blur">
+      <div id="background-blur-layer"></div>
+    </div>
+    <div id="app-container" class="app-container" style="display: none">
+      <aside class="left-pane">
+        <div class="user-section">
+          Logged in as: <strong id="user-info-username"></strong>
+          <button id="logout-btn" class="btn btn-text">Logout</button>
+        </div>
+        <div class="playlist-add-form">
+          <input
+            type="url"
+            id="playlist-url-input"
+            placeholder="Enter Playlist URL..."
+            aria-label="Playlist URL Input"
+          />
+          <button
+            id="add-playlist-btn"
+            class="btn btn-filled"
+            aria-label="Add Playlist"
+          >
+            Add
+          </button>
+        </div>
+        <div class="list-container">
+          <ul id="playlist-list" class="item-list" aria-label="Saved Playlists">
+            <li class="list-item-placeholder">Loading playlists...</li>
+          </ul>
+        </div>
+        <div class="action-buttons">
+          <button id="remove-playlist-btn" class="btn btn-text" disabled>
+            Remove
+          </button>
+          <button id="refresh-playlist-btn" class="btn btn-text" disabled>
+            Refresh
+          </button>
+        </div>
+      </aside>
+
+      <main class="right-pane">
+        <section class="video-section">
+          <h2>Playlist Items</h2>
+          <div class="list-container">
+            <ul
+              id="video-list"
+              class="item-list"
+              aria-label="Videos in selected playlist"
+            >
+              <li class="list-item-placeholder">
+                Select a playlist to view videos.
+              </li>
+            </ul>
+          </div>
+        </section>
+        <footer class="status-bar" id="status-message">Ready</footer>
+      </main>
+    </div>
+    <section id="playback-controls-section" aria-label="Playback Controls" style="display: none">
+      <div class="seek-bar-container">
+        <span id="current-time" class="time-display">0:00</span>
+        <input
+          type="range"
+          id="seek-bar"
+          value="0"
+          step="0.1"
+          aria-label="Seek Bar"
+        />
+        <span id="total-duration" class="time-display">0:00</span>
+      </div>
+
+      <div class="controls-main">
+        <div id="current-track-info">
+          Now Playing: <span id="now-playing-title">Nothing</span>
+        </div>
+        <audio id="audio-player" style="display: none"></audio>
+        <div class="controls-right">
+          <div class="playback-mode-controls">
+            <button
+              id="prev-btn"
+              class="btn btn-icon"
+              aria-label="Previous Track"
+              title="Previous Track"
+              disabled
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 0 24 24"
+                width="24px"
+                fill="currentColor"
+              >
+                <path d="M0 0h24v24H0V0z" fill="none" />
+                <path d="M6 6h2v12H6zm3.5 6l8.5 6V6l-8.5 6z" />
+              </svg>
+            </button>
+            <button
+              id="loop-btn"
+              class="btn btn-icon"
+              aria-label="Loop Off"
+              title="Loop Off"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 0 24 24"
+                width="24px"
+                fill="currentColor"
+              >
+                <path d="M0 0h24v24H0V0z" fill="none" />
+                <path
+                  d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
+                />
+              </svg>
+            </button>
+            <button
+              id="next-btn"
+              class="btn btn-icon"
+              aria-label="Next Track"
+              title="Next Track"
+              disabled
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 0 24 24"
+                width="24px"
+                fill="currentColor"
+              >
+                <path d="M0 0h24v24H0V0z" fill="none" />
+                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+              </svg>
+            </button>
+          </div>
+          <div class="controls-buttons">
+            <button
+              id="play-btn"
+              class="btn btn-icon"
+              aria-label="Play"
+              disabled
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 0 24 24"
+                width="24px"
+                fill="currentColor"
+              >
+                <path d="M0 0h24v24H0V0z" fill="none" />
+                <path
+                  d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+                />
+              </svg>
+            </button>
+            <button
+              id="pause-btn"
+              class="btn btn-icon"
+              aria-label="Pause"
+              disabled
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 0 24 24"
+                width="24px"
+                fill="currentColor"
+              >
+                <path d="M0 0h24v24H0V0z" fill="none" />
+                <path
+                  d="M9 16h2V8H9v8zm3-14C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-4h2V8h-2v8z"
+                />
+              </svg>
+            </button>
+            <button
+              id="stop-btn"
+              class="btn btn-icon"
+              aria-label="Stop"
+              disabled
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 0 24 24"
+                width="24px"
+                fill="currentColor"
+              >
+                <path d="M0 0h24v24H0V0z" fill="none" />
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-4h2V8h-2v8z"
+                />
+              </svg>
+            </button>
+          </div>
+          <div class="volume-control">
+            <button
+              id="mute-btn"
+              class="btn btn-icon"
+              aria-label="Mute"
+            ></button>
+            <input
+              type="range"
+              id="volume-bar"
+              min="0"
+              max="100"
+              value="100"
+              step="1"
+              aria-label="Volume Control"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+    <script src="/static/script.js" defer></script>
+  </body>
+</html>
