@@ -85,10 +85,57 @@ document.addEventListener("DOMContentLoaded", () => {
   let playbackMode = "none"; // Possible values: 'none', 'loop-one', 'loop-all'
   let currentUserToken = null;
 
-  function sendPresenceData(songData) {
-    window.postMessage({ type: "SONG_DATA", song: songData }, "*");
-  }
+  async function sendPresenceData(songData) {
+    const flaskUrl = "http://127.0.0.1:4582/presence";
 
+    try {
+      const response = await fetch(flaskUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*", 
+        },
+        body: JSON.stringify(songData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Presence updated successfully:", result);
+      } else {
+        const errorData = await response.json();
+        console.error(`Error updating presence: ${response.status} - ${errorData.message || 'Unknown error'}`);
+        alertUserMessage(`Failed to update presence: ${errorData.message || 'Please check the Flask server.'}`);
+      }
+    } catch (error) {
+      console.error("Network error while sending presence data:", error);
+      alertUserMessage("Could not connect to the Flask server. Please ensure it's running.");
+    }
+  }
+  function alertUserMessage(message) {
+    console.log("User Message:", message);
+    const messageBox = document.createElement('div');
+    messageBox.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: var(--glass-background-color);
+      color: var(--glass-text-color);
+      border: 1px solid var(--glass-border-color);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      z-index: 1000;
+      text-align: center;
+    `;
+    messageBox.textContent = message;
+    document.body.appendChild(messageBox);
+
+    setTimeout(() => {
+      document.body.removeChild(messageBox);
+    }, 5000); // Remove message after 3 seconds
+  }
   // --- Token Handling Functions ---
   function storeToken(token) {
     currentUserToken = token;
